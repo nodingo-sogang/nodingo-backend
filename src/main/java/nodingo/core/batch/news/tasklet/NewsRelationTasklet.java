@@ -89,6 +89,10 @@ public class NewsRelationTasklet implements Tasklet {
                 List<NewsRelation> relationsToSave = new ArrayList<>();
 
                 for (NewsRelationAnalysis.RelationResult res : response.getRelations()) {
+                    if (res.getSubjectNewsId().equals(res.getRelatedNewsId())) {
+                        log.warn(">>>> [Relation Tasklet] SKIP: AI made news connected itself.(News ID: {})", res.getSubjectNewsId());
+                        continue;
+                    }
                     News subject = newsMap.get(res.getSubjectNewsId());
                     News related = newsMap.get(res.getRelatedNewsId());
 

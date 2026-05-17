@@ -18,6 +18,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
 @Tag(name = "Notification", description = "알림 관련 API")
 @RestController
 @RequestMapping("/api/users/notifications")
@@ -30,22 +39,38 @@ public class NotificationController {
 
     @Operation(
             summary = "유저 알림 설정 저장",
-            description = "유저가 뉴스 요약을 받고 싶은 시간(1~24시)과 FCM 기기 토큰을 저장 및 갱신합니다."
+            description = "유저가 뉴스 요약을 받고 싶은 시간(1~24시)을 수정합니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공적으로 알림 설정이 저장되었습니다.")
     })
-    @PostMapping
-    public ResponseEntity<ApiResponse<Void>> setNotification(
+    @PatchMapping("/time")
+    public ResponseEntity<ApiResponse<Void>> updateNotificationTime(
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
-            @Valid @RequestBody NotificationRequest request) {
-        notificationService.updateNotificationSetting(NotificationCommand.of(customOAuth2User.getUser().getId(), request));
-        return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 알림 설정이 저장되었습니다."));
+            @Valid @RequestBody NotificationRequest.TimeRequest request) {
+        notificationService.updateNotifyHour(NotificationCommand.ofTime(customOAuth2User.getUser().getId(), request));
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 알림 설정이 저장되었습니다.", null));
+    }
+
+    @Operation(
+            summary = "FCM 토큰 갱신 (백그라운드용)",
+            description = "앱 실행 시 백그라운드에서 발급된 최신 FCM 토큰을 서버에 갱신합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공적으로 FCM 토큰이 갱신되었습니다.")
+    })
+    @PatchMapping("/token")
+    public ResponseEntity<ApiResponse<Void>> updateFcmToken(
+            @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
+            @Valid @RequestBody NotificationRequest.TokenRequest request) {
+
+        notificationService.updateFcmToken(NotificationCommand.ofToken(customOAuth2User.getUser().getId(), request));
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 FCM 토큰이 갱신되었습니다.", null));
     }
 
     @Operation(
             summary = "유저 알림 설정 조회",
-            description = "유저가 설정한 뉴스 요약 알림 시간과 FCM 토큰 정보를 조회합니다. 설정이 없으면 null을 반환합니다."
+            description = "유저가 설정한 뉴스 요약 알림 시간을 조회합니다"
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공적으로 알림 설정을 조회했습니다.")
