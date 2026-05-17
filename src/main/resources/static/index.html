@@ -159,15 +159,14 @@
                     const accessToken = localStorage.getItem('accessToken');
 
                     // 스프링부트 서버로 전송
-                    fetch('/api/notification/setting', {
-                        method: 'POST',
+                    fetch('/api/users/notifications/token', {
+                        method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${accessToken}`
                         },
                         body: JSON.stringify({
-                            fcmToken: currentToken,
-                            notifyHour: 11
+                            fcmToken: currentToken
                         })
                     })
                     .then(res => {

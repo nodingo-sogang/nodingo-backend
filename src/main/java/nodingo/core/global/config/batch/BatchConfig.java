@@ -29,9 +29,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BatchConfig {
 
-    private static final int NEWS_CHUNK_SIZE = 100;
-    private static final int USER_CHUNK_SIZE = 100;
-    private static final int SUMMARY_CHUNK_SIZE=100;
+    private static final int NEWS_CHUNK_SIZE = 10;
+    private static final int USER_CHUNK_SIZE = 10;
+    private static final int SUMMARY_CHUNK_SIZE=10;
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;

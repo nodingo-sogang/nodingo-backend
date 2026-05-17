@@ -20,18 +20,27 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional
 public class NotificationService {
+
     private final UserRepository userRepository;
     private final NotificationSettingRepository notificationSettingRepository;
 
-    public void updateNotificationSetting(NotificationCommand command) {
+    public void updateNotifyHour(NotificationCommand command) {
         User user = getOrElseThrow(command.getUserId());
         NotificationSetting setting = getSetting(command.getUserId(), user);
-        setting.update(command.getNotifyHour(), command.getFcmToken());
+
+        setting.updateHour(command.getNotifyHour());
+    }
+
+    public void updateFcmToken(NotificationCommand command) {
+        User user = getOrElseThrow(command.getUserId());
+        NotificationSetting setting = getSetting(command.getUserId(), user);
+
+        setting.updateToken(command.getFcmToken());
     }
 
     private User getOrElseThrow(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다.")); // 예외 클래스명은 프로젝트에 맞게 확인해주세요!
     }
 
     private NotificationSetting getSetting(Long userId, User user) {

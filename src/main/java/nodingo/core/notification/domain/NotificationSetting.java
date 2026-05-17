@@ -32,8 +32,11 @@ public class NotificationSetting extends BaseTimeEntity {
         return setting;
     }
 
-    public void update(int hour, String token) {
-        this.notifyHour = hour;
-        this.fcmToken = token;
+    public void updateHour(Integer notifyHour) {
+        this.notifyHour = notifyHour;
+    }
+
+    public void updateToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 }

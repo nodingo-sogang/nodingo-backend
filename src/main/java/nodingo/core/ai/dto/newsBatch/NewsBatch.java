@@ -68,6 +68,9 @@ public class NewsBatch {
         private double weight;
         private boolean isNew;
         private List<String> aliases;
+
+        private String personas;
+        private String macro;
     }
 
     @Getter

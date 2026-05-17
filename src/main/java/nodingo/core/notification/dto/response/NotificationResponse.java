@@ -11,19 +11,16 @@ import nodingo.core.notification.dto.result.NotificationResult;
 @AllArgsConstructor
 @Builder
 public class NotificationResponse {
+
     private Integer notifyHour;
-    private boolean isSet;
+    private boolean isConfigured;
 
     public static NotificationResponse from(NotificationResult result) {
-        if (result == null || result.getNotifyHour() == null) {
-            return NotificationResponse.builder()
-                    .isSet(false)
-                    .build();
-        }
+        boolean configured = (result != null && result.getNotifyHour() != null);
 
-        return NotificationResponse.builder()
-                .notifyHour(result.getNotifyHour())
-                .isSet(true)
-                .build();
+        return new NotificationResponse(
+                result != null ? result.getNotifyHour() : null,
+                configured
+        );
     }
 }

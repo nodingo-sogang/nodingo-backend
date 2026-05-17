@@ -63,7 +63,7 @@ spring:
         config:
           default:
             connectTimeout: 10000
-            readTimeout: 600000
+            readTimeout: 300000
 
   security:
     oauth2:
