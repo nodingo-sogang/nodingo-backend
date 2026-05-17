@@ -32,6 +32,7 @@ public class NewsBatch {
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class NewsInput {
+        @JsonProperty("news_id")
         private Long newsId;
         private String title;
         private String body;
