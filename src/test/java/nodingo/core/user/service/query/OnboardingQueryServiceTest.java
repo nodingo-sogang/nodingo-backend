@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +37,7 @@ class OnboardingQueryServiceTest {
     @DisplayName("1. 대분류(Persona) 목록 조회: 모든 Enum 값이 유저 ID와 함께 정상 반환되어야 함")
     void getPersonasTest() {
         // when
-        PersonaListResult result = onboardingQueryService.getPersonas(testUserId);
+        PersonaListResult result = onboardingQueryService.getPersonas();
 
         // then
         assertThat(result.getContents()).hasSize(UserPersona.values().length);
@@ -50,18 +52,19 @@ class OnboardingQueryServiceTest {
         UserPersona persona = UserPersona.TECHNOLOGY;
         Long macroId = 10L;
         Keyword macroKeyword = createMockKeyword(macroId, "인공지능", persona, InterestLevel.MACRO, null);
+        Pageable limit = PageRequest.of(0, 6);
 
-        given(keywordRepository.findAllByPersonaAndLevel(persona, InterestLevel.MACRO))
+        given(keywordRepository.findAllByPersonaAndLevel(persona, InterestLevel.MACRO, limit))
                 .willReturn(List.of(macroKeyword));
 
         // when
-        KeywordListResult result = onboardingQueryService.getMacroKeywords(testUserId, persona);
+        KeywordListResult result = onboardingQueryService.getMacroKeywords(persona);
 
         // then
         assertThat(result.getContents()).hasSize(1);
         assertThat(result.getContents().get(0).getId()).isEqualTo(macroId);
         assertThat(result.getContents().get(0).getWord()).isEqualTo("인공지능");
-        verify(keywordRepository, times(1)).findAllByPersonaAndLevel(persona, InterestLevel.MACRO);
+        verify(keywordRepository, times(1)).findAllByPersonaAndLevel(persona, InterestLevel.MACRO, limit);
     }
 
     @Test
@@ -71,18 +74,19 @@ class OnboardingQueryServiceTest {
         Long parentId = 10L;
         Long specificId = 101L;
         Keyword specificKeyword = createMockKeyword(specificId, "LLM", UserPersona.TECHNOLOGY, InterestLevel.SPECIFIC, null);
+        Pageable limit = PageRequest.of(0, 6);
 
-        given(keywordRepository.findAllByParentIdAndLevel(parentId, InterestLevel.SPECIFIC))
+        given(keywordRepository.findAllByParentIdAndLevel(parentId, InterestLevel.SPECIFIC, limit))
                 .willReturn(List.of(specificKeyword));
 
         // when
-        KeywordListResult result = onboardingQueryService.getSpecificKeywords(testUserId, parentId);
+        KeywordListResult result = onboardingQueryService.getSpecificKeywords(parentId);
 
         // then
         assertThat(result.getContents()).hasSize(1);
         assertThat(result.getContents().get(0).getId()).isEqualTo(specificId);
         assertThat(result.getContents().get(0).getWord()).isEqualTo("LLM");
-        verify(keywordRepository, times(1)).findAllByParentIdAndLevel(parentId, InterestLevel.SPECIFIC);
+        verify(keywordRepository, times(1)).findAllByParentIdAndLevel(parentId, InterestLevel.SPECIFIC, limit);
     }
 
     /**

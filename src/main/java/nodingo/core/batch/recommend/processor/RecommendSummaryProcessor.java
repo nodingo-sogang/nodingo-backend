@@ -10,14 +10,14 @@ import nodingo.core.keyword.repository.NewsKeywordRepository;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Configuration
+@Component
 @RequiredArgsConstructor
 public class RecommendSummaryProcessor {
 

@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS BATCH_JOB_INSTANCE  (
     JOB_INSTANCE_ID BIGINT PRIMARY KEY,
     VERSION BIGINT,
     JOB_NAME VARCHAR(100) NOT NULL,
-    JOB_KEY VARCHAR(32) NOT NULL
+    JOB_KEY VARCHAR(32) NOT NULL,
+    CONSTRAINT JOB_INST_UN UNIQUE (JOB_NAME, JOB_KEY)
 );
 
 CREATE TABLE IF NOT EXISTS BATCH_JOB_EXECUTION  (
@@ -101,13 +102,13 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- Run after Hibernate creates entity tables.
 -- ================================
 
-
-CREATE INDEX IF NOT EXISTS idx_news_embedding
+/*CREATE INDEX IF NOT EXISTS idx_news_embedding
 ON news USING hnsw (embedding vector_cosine_ops);
 
 CREATE INDEX IF NOT EXISTS idx_keyword_embedding
 ON keywords USING hnsw (embedding vector_cosine_ops);
 
 CREATE INDEX IF NOT EXISTS idx_user_embedding
-ON users USING hnsw (embedding vector_cosine_ops);
+ON users USING hnsw (embedding vector_cosine_ops);*/
+
 

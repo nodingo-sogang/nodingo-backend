@@ -6,7 +6,10 @@ import nodingo.core.user.domain.UserScrap;
 import nodingo.core.user.repository.custom.UserScrapRepositoryCustom;
 
 import java.util.Optional;
+import java.util.List;
 
+import static nodingo.core.keyword.domain.QKeyword.keyword;
+import static nodingo.core.keyword.domain.QRecommendKeyword.recommendKeyword;
 import static nodingo.core.user.domain.QUserScrap.userScrap;
 
 @RequiredArgsConstructor
@@ -38,5 +41,21 @@ public class UserScrapRepositoryImpl implements UserScrapRepositoryCustom {
                         )
                         .fetchOne()
         );
+    }
+
+    @Override
+    public List<UserScrap> findKeywordScrapsByUserId(Long userId, int page, int size) {
+        return queryFactory
+                .selectFrom(userScrap)
+                .join(userScrap.recommendKeyword, recommendKeyword).fetchJoin()
+                .join(recommendKeyword.keyword, keyword).fetchJoin()
+                .where(
+                        userScrap.user.id.eq(userId),
+                        userScrap.recommendKeyword.isNotNull()
+                )
+                .orderBy(userScrap.id.desc())
+                .offset((long) page * size)
+                .limit(size + 1L)
+                .fetch();
     }
 }

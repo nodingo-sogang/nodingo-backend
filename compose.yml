@@ -2,6 +2,13 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: nodingo-postgres
+
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+        reservations:
+          memory: 2048M
     environment:
       POSTGRES_DB: nodingo
       POSTGRES_USER: nodingo_user

@@ -1,5 +1,6 @@
 package nodingo.core.ai.dto.userEmbedding;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,51 +12,62 @@ import java.util.List;
 
 public class UserEmbedding {
 
-    /**
-     * 초기 온보딩용 (관심 키워드 기반)
-     */
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class InitRequest {
+        @JsonProperty("user_id")
         private Long userId;
+        @JsonProperty("interest_keywords")
         private List<InterestKeyword> interestKeywords;
     }
 
-    /**
-     * 유저 스크랩 활동 기반 업데이트 요청
-     */
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class UpdateRequest {
+        @JsonProperty("user_id")
         private Long userId;
+        @JsonProperty("old_embedding")
         private float[] oldEmbedding;
+        @JsonProperty("activities")
         private List<Activity> activities;
+        @JsonProperty("decay")
         private double decay;
     }
 
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class Response {
+        @JsonProperty("user_id")
         private Long userId;
+        @JsonProperty("embedding")
         private float[] embedding;
     }
 
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class InterestKeyword {
+        @JsonProperty("keyword_id")
         private Long keywordId;
+        @JsonProperty("word")
         private String word;
+        @JsonProperty("embedding")
         private float[] embedding;
     }
 
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class Activity {
+        @JsonProperty("type")
         private String type;
+        @JsonProperty("news_id")
         private Long newsId;
+        @JsonProperty("news_embedding")
         private float[] newsEmbedding;
+        @JsonProperty("keyword_id")
         private Long keywordId;
+        @JsonProperty("keyword_embedding")
         private float[] keywordEmbedding;
+        @JsonProperty("weight")
         private double weight;
 
         public static Activity createNewsScrap(News news, double weight) {

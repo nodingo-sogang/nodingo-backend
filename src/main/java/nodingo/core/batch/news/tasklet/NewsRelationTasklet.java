@@ -13,25 +13,11 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.StepContribution;
-import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.core.scope.context.ChunkContext;
-import org.springframework.batch.core.step.tasklet.Tasklet;
-import org.springframework.batch.repeat.RepeatStatus;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,13 +34,16 @@ public class NewsRelationTasklet implements Tasklet {
     private final NewsRelationRepository newsRelationRepository;
     private final AiClient aiClient;
 
+    @Value("#{jobParameters['requestTime']}")
+    private LocalDateTime requestTime;
+
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
         log.info(">>>> [Relation Tasklet] Starting news relation building process.");
 
-        // 1. 분석 대상 뉴스 조회
-        LocalDateTime startTime = LocalDate.now().minusDays(1).atTime(5, 1, 0);
-        LocalDateTime endTime = LocalDate.now().atTime(4, 59, 59);
+        // 1. requestTime 기준 24시간 범위로 뉴스 조회
+        LocalDateTime endTime = requestTime != null ? requestTime : LocalDateTime.now();
+        LocalDateTime startTime = endTime.minusHours(24);
 
         List<News> targetNews = newsRepository.findAllByDateTimePubBetweenAndEmbeddingIsNotNull(startTime, endTime);
 

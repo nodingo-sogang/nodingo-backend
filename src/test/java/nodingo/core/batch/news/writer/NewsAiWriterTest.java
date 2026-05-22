@@ -59,7 +59,7 @@ class NewsAiWriterTest {
                         .embedding(new float[]{0.1f})
                         .keywords(Collections.emptyList())
                         .build()))
-                .keywordRelations(List.of(new NewsBatch.KeywordRelationResult(10L, 11L, 0.95)))
+                .keywordRelations(List.of(new NewsBatch.KeywordRelationResult(10L, 11L, "키워드C", "키워드D", 0.95)))
                 .build();
 
         given(aiClient.analyzeNewsBatch(any(NewsBatch.Request.class))).willReturn(aiResponse);

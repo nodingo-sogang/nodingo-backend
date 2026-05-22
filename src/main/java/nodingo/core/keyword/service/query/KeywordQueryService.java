@@ -18,11 +18,15 @@ import java.util.stream.Collectors;
 public class KeywordQueryService {
     private final KeywordRepository keywordRepository;
 
-    public Map<String, Keyword> getExistingKeywordsMap(Collection<String> normalizedWords) { // 여기도 Collection!
+    public Map<String, Keyword> getExistingKeywordsMap(Collection<String> normalizedWords) {
         if (normalizedWords == null || normalizedWords.isEmpty()) {
             return new HashMap<>();
         }
         return keywordRepository.findByNormalizedWordIn(normalizedWords).stream()
-                .collect(Collectors.toMap(Keyword::getNormalizedWord, Function.identity()));
+                .collect(Collectors.toMap(
+                        Keyword::getNormalizedWord,
+                        Function.identity(),
+                        (existing, replacement) -> existing
+                ));
     }
 }

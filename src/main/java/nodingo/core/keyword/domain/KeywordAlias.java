@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "keyword_alias",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"alias"})
+                @UniqueConstraint(columnNames = {"alias", "keyword_id"})
         },
         indexes = {
                 @Index(name = "idx_alias", columnList = "alias")

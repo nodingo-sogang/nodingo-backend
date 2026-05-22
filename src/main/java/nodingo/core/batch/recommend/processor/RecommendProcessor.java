@@ -9,12 +9,13 @@ import nodingo.core.user.domain.User;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+
 
 import java.time.LocalDate;
 import java.util.List;
 
-@Configuration
+@Component
 @RequiredArgsConstructor
 public class RecommendProcessor {
 

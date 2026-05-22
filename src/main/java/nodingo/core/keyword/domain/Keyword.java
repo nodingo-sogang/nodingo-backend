@@ -10,6 +10,7 @@ import nodingo.core.user.domain.UserPersona;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +20,10 @@ import java.util.List;
 @Table(
         name = "keywords",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"normalizedWord"})
+                @UniqueConstraint(
+                        name = "uk_keyword_normalized_word_level_date",
+                        columnNames = {"normalized_word", "level", "target_date"}
+                )
         }
 )
 public class Keyword extends BaseTimeEntity {
@@ -48,6 +52,9 @@ public class Keyword extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private InterestLevel level;
 
+    @Column(nullable = true)
+    private LocalDate targetDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Keyword parent;
@@ -70,14 +77,49 @@ public class Keyword extends BaseTimeEntity {
         return keyword;
     }
 
-    public static Keyword create(String word) {
+    public static Keyword createMacro(String word, UserPersona persona, LocalDate targetDate) {
+        Keyword keyword = new Keyword();
+        keyword.word = word;
+        keyword.normalizedWord = normalize(word);
+        keyword.embedding = emptyEmbedding();
+        keyword.persona = persona;
+        keyword.level = InterestLevel.MACRO;
+        keyword.targetDate = targetDate;
+        keyword.addAlias(word);
+        return keyword;
+    }
+
+    public static Keyword createSpecific(String word, UserPersona persona, Keyword parent, LocalDate targetDate) {
+        Keyword keyword = new Keyword();
+        keyword.word = word;
+        keyword.normalizedWord = normalize(word);
+        keyword.embedding = emptyEmbedding();
+        keyword.persona = persona;
+        keyword.level = InterestLevel.SPECIFIC;
+        keyword.parent = parent;
+        keyword.targetDate = targetDate;
+        keyword.addAlias(word);
+        return keyword;
+    }
+
+    public static Keyword create(String word, LocalDate targetDate) {
         Keyword keyword = new Keyword();
         keyword.word = word;
         keyword.normalizedWord = normalize(word);
         keyword.embedding = emptyEmbedding();
         keyword.level = InterestLevel.SPECIFIC;
+        keyword.targetDate = targetDate;
         keyword.addAlias(word);
         return keyword;
+    }
+
+    public void updatePersonaAndParent(UserPersona persona, Keyword parent) {
+        if (this.persona == null && persona != null) {
+            this.persona = persona;
+        }
+        if (this.parent == null && parent != null) {
+            this.parent = parent;
+        }
     }
 
     public void updateEmbedding(float[] embedding) {

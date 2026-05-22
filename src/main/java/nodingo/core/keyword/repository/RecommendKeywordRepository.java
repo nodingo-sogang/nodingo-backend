@@ -17,4 +17,6 @@ public interface RecommendKeywordRepository extends JpaRepository<RecommendKeywo
     void deleteByUserIdAndTargetDate(@Param("userId") Long userId, @Param("targetDate") LocalDate targetDate);
 
     List<RecommendKeyword> findAllByUserId(Long userId);
+
+    boolean existsByUserIdAndTargetDate(Long userId, LocalDate targetDate);
 }

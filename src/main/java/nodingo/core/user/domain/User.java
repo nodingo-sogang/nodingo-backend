@@ -103,6 +103,7 @@ public class User extends BaseTimeEntity implements UserDetails {
         this.refreshToken = refreshToken;
     }
 
+    // User.java
     public void completeOnboarding(List<UserPersona> personas) {
         if (personas == null || personas.isEmpty()) {
             throw new IllegalArgumentException("최소 1개의 페르소나를 선택해야 합니다.");
@@ -110,7 +111,7 @@ public class User extends BaseTimeEntity implements UserDetails {
         if (personas.size() > 1) {
             throw new IllegalArgumentException("페르소나(대분류)는 1개만 선택 가능합니다.");
         }
-        this.personas = personas;
+        this.personas = new ArrayList<>(personas);
     }
 
     public boolean isOnboardingCompleted() {
