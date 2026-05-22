@@ -39,9 +39,8 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공적으로 페르소나 목록을 조회했습니다.")
     })
     @GetMapping("/keywords/personas")
-    public ResponseEntity<ApiResponse<PersonaListResponse>> getPersonas(
-            @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
-        PersonaListResult result = onboardingQueryService.getPersonas(customOAuth2User.getUser().getId());
+    public ResponseEntity<ApiResponse<PersonaListResponse>> getPersonas() {
+        PersonaListResult result = onboardingQueryService.getPersonas();
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 유저 맞춤형 페르소나 목록을 조회했습니다.", PersonaListResponse.from(result)));
     }
 
@@ -54,9 +53,8 @@ public class UserController {
     })
     @GetMapping("/keywords/macro")
     public ResponseEntity<ApiResponse<KeywordListResponse>> getMacros(
-            @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
             @RequestParam UserPersona persona) {
-        KeywordListResult result = onboardingQueryService.getMacroKeywords(customOAuth2User.getUser().getId(), persona);
+        KeywordListResult result = onboardingQueryService.getMacroKeywords(persona);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 유저 맞춤형 중분류 목록을 조회했습니다.",KeywordListResponse.from(result)));
     }
 
@@ -69,9 +67,8 @@ public class UserController {
     })
     @GetMapping("/keywords/specific")
     public ResponseEntity<ApiResponse<KeywordListResponse>> getSpecifics(
-            @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
             @RequestParam Long macroId) {
-        KeywordListResult result = onboardingQueryService.getSpecificKeywords(customOAuth2User.getUser().getId(), macroId);
+        KeywordListResult result = onboardingQueryService.getSpecificKeywords(macroId);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 유저 맞춤형 소분류 목록을 조회했습니다.", KeywordListResponse.from(result)));
     }
 

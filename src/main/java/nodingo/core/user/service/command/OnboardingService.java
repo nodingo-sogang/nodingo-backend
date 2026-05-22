@@ -5,6 +5,7 @@ import nodingo.core.global.exception.keyword.KeywordNotFoundException;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.repository.KeywordRepository;
+import nodingo.core.keyword.service.command.RecommendKeywordInitService;
 import nodingo.core.user.domain.InterestLevel;
 import nodingo.core.user.domain.User;
 import nodingo.core.user.domain.UserInterest;
@@ -32,6 +33,7 @@ public class OnboardingService {
     private final KeywordRepository keywordRepository;
     private final UserInterestRepository userInterestRepository;
     private final UserVectorService userVectorService;
+    private final RecommendKeywordInitService recommendKeywordInitService;
 
     public void saveOnboardingInfo(SaveOnboardingCommand command) {
         User user = getUser(command.getUserId());
@@ -39,6 +41,8 @@ public class OnboardingService {
         userInterestRepository.deleteTodayInterests(user.getId(), LocalDate.now());
 
         user.completeOnboarding(command.getPersonas());
+
+        userRepository.save(user);
 
         List<Long> allKeywordIds = extractAllKeywordIds(command);
         Map<Long, Keyword> keywordMap = getKeywordMap(allKeywordIds);
@@ -57,10 +61,11 @@ public class OnboardingService {
         }
 
         userVectorService.initUserEmbedding(user, selectedKeywords);
+        recommendKeywordInitService.initForNewUser(user);
     }
 
     private User getUser(Long userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByIdWithInterests(userId)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
     }
 

@@ -7,6 +7,7 @@ import nodingo.core.keyword.domain.QRecommendKeyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.custom.RecommendKeywordRepositoryCustom;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,5 +43,17 @@ public class RecommendKeywordRepositoryImpl implements RecommendKeywordRepositor
                         )
                         .fetchOne()
         );
+    }
+
+    @Override
+    public List<RecommendKeyword> findTabsByUserAndDate(Long userId, LocalDate targetDate) {
+        return queryFactory
+                .selectFrom(recommendKeyword)
+                .join(recommendKeyword.keyword, keyword).fetchJoin()
+                .where(
+                        recommendKeyword.user.id.eq(userId),
+                        recommendKeyword.targetDate.eq(targetDate)
+                )
+                .fetch();
     }
 }

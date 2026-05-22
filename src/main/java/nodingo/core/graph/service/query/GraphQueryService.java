@@ -13,11 +13,14 @@ import nodingo.core.keyword.domain.KeywordRelation;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.KeywordRelationRepository;
 import nodingo.core.keyword.repository.RecommendKeywordRepository;
+import nodingo.core.user.repository.UserRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,52 +29,63 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GraphQueryService {
-    private final static int KEYWORD_LIMIT=4;
-    private final static int RELATED_KEYWORD_LIMIT=8;
+    private final static int KEYWORD_LIMIT = 4;
+    private final static int RELATED_KEYWORD_LIMIT = 8;
+
     private final AiClient aiClient;
     private final RecommendKeywordRepository recommendKeywordRepository;
     private final KeywordRelationRepository keywordRelationRepository;
 
     public TabListResult getTodayTabs(Long userId) {
-        List<RecommendKeyword> recommendKeywords = recommendKeywordRepository.findAllWithKeyword(userId);
-
+        LocalDate targetDate = getTargetDate();
+        List<RecommendKeyword> recommendKeywords = recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate);
         List<TabResult> tabs = recommendKeywords.stream()
                 .sorted(Comparator.comparingDouble(RecommendKeyword::getScore).reversed())
                 .limit(KEYWORD_LIMIT)
                 .map(TabResult::of)
                 .toList();
-
         return TabListResult.of(tabs);
     }
 
     @Cacheable(value = "batch:graph", key = "#userId + ':' + (#centralKeywordId == null ? 'ALL' : #centralKeywordId)")
     public GraphDataResult getGraphPreview(Long userId, Long centralKeywordId) {
-
-        // 1. 유저의 추천 키워드 맵 가져오기
         Map<Long, RecommendKeyword> recommendMap = getRecommendKeywordMap(userId);
         List<KeywordRelation> targetRelations;
 
         if (centralKeywordId == null) {
-            // [전체 보기 로직]
-            // getTodayTabs와 동일하게 상위 4개(KEYWORD_LIMIT) 키워드 ID만 추출
             List<Long> topTabIds = recommendMap.values().stream()
                     .sorted(Comparator.comparingDouble(RecommendKeyword::getScore).reversed())
                     .limit(KEYWORD_LIMIT)
                     .map(rk -> rk.getKeyword().getId())
                     .toList();
 
-            // 🚀 중요: 이 4개 노드들끼리 연결된 모든 선(Edge)을 가져옴
-            targetRelations = keywordRelationRepository.findAllRelationsIn(topTabIds);
+            targetRelations = topTabIds.stream()
+                    .flatMap(id -> keywordRelationRepository
+                            .findTopRelations(id, PageRequest.of(0, RELATED_KEYWORD_LIMIT))
+                            .getContent().stream())
+                    .distinct()
+                    .toList();
         } else {
-            // [특정 탭 클릭 로직] 기존 유지
             targetRelations = keywordRelationRepository
-                    .findTopRelations(centralKeywordId, PageRequest.of(0, 8))
+                    .findTopRelations(centralKeywordId, PageRequest.of(0, RELATED_KEYWORD_LIMIT))
                     .getContent();
         }
 
-        // 2. AI 서버(FastAPI) 호출
+        log.info(">>>> [Graph Debug] centralKeywordId: {}, targetRelations size: {}", centralKeywordId, targetRelations.size());
+
         GraphPreview.Request aiRequest = createAiRequest(centralKeywordId, targetRelations, recommendMap);
+
+        log.info(">>>> [Graph Debug] nodeIds sent to AI: {}",
+                aiRequest.getRecommendKeywords().stream()
+                        .map(GraphPreview.GraphRecommendKeywordInput::getKeywordId).toList());
+        log.info(">>>> [Graph Debug] relation pairs sent to AI: {}",
+                aiRequest.getKeywordRelations().stream()
+                        .map(r -> r.getSourceKeywordId() + "->" + r.getTargetKeywordId()).toList());
+
         GraphPreview.Response aiResponse = aiClient.getGraphPreview(aiRequest);
+
+        log.info(">>>> [Graph Debug] aiResponse nodes: {}, edges: {}",
+                aiResponse.getNodes().size(), aiResponse.getEdges().size());
 
         return GraphDataResult.from(aiResponse);
     }
@@ -82,7 +96,8 @@ public class GraphQueryService {
     }
 
     private Map<Long, RecommendKeyword> getRecommendKeywordMap(Long userId) {
-        return recommendKeywordRepository.findAllWithKeyword(userId).stream()
+        LocalDate targetDate = getTargetDate();
+        return recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate).stream()
                 .collect(Collectors.toMap(rk -> rk.getKeyword().getId(), rk -> rk));
     }
 
@@ -97,7 +112,7 @@ public class GraphQueryService {
 
     private Set<Long> extractAllNodeIds(Long centralId, List<KeywordRelation> relations) {
         Set<Long> ids = new HashSet<>();
-        ids.add(centralId);
+        if (centralId != null) ids.add(centralId);
         relations.forEach(rel -> {
             ids.add(rel.getSubjectKeyword().getId());
             ids.add(rel.getRelatedKeyword().getId());
@@ -130,9 +145,14 @@ public class GraphQueryService {
                 .toList();
     }
 
+    private static LocalDate getTargetDate() {
+        return LocalTime.now().isBefore(LocalTime.of(5, 0))
+                ? LocalDate.now().minusDays(1)
+                : LocalDate.now();
+    }
+
     private RecommendKeyword getOrElseThrow(Long userId, Long keywordId) {
         return recommendKeywordRepository.findRecommend(userId, keywordId)
                 .orElseThrow(() -> new RecommendKeywordNotFoundException("추천 키워드를 찾을 수 없습니다."));
     }
-
 }

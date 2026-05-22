@@ -16,8 +16,12 @@ import nodingo.core.user.domain.UserPersona;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 import java.util.function.Function;
@@ -33,26 +37,34 @@ public class NewsAiWriter implements ItemWriter<News> {
     private final KeywordRepository keywordRepository;
     private final KeywordRelationRepository keywordRelationRepository;
     private final AiClient aiClient;
-    private final KeywordQueryService keywordQueryService;
+
+    @Value("#{jobParameters['requestTime']}")
+    private LocalDateTime requestTime;
 
     private static final int TOP_K_KEYWORDS = 5;
 
     @Override
     public void write(Chunk<? extends News> items) {
         List<News> chunkItems = new ArrayList<>(items.getItems());
-
         if (chunkItems.isEmpty()) return;
 
-        // 1. DB 1차 저장 (AI 서버에 보낼 ID 확보)
-        List<News> savedNews = newsRepository.saveAll(chunkItems);
+        LocalDate targetDate = (requestTime != null)
+                ? (requestTime.toLocalTime().isBefore(LocalTime.of(5, 0))
+                ? requestTime.toLocalDate().minusDays(1)
+                : requestTime.toLocalDate())
+                : (LocalTime.now().isBefore(LocalTime.of(5, 0))
+                ? LocalDate.now().minusDays(1)
+                : LocalDate.now());
 
+        // 1. DB 1차 저장
+        List<News> savedNews = newsRepository.saveAll(chunkItems);
         Map<Long, News> newsMap = savedNews.stream()
                 .collect(Collectors.toMap(News::getId, Function.identity()));
 
-        // 2. 파이썬 전송용 기존 키워드 목록 비우기
-        List<NewsBatch.ExistingKeywordInput> existingKeywords = new ArrayList<>();
+        // 2. 기존 키워드 로드 후 AI 호출
+        // (파이썬이 기존 keyword_id를 매핑할 수 있도록 existingKeywords를 채워서 전달)
+        List<Keyword> existingKeywords = keywordRepository.findAllByTargetDate(targetDate);
 
-        // 3. AI 분석 요청 객체 생성
         NewsBatch.Request request = NewsBatch.Request.builder()
                 .news(savedNews.stream()
                         .map(n -> NewsBatch.NewsInput.builder()
@@ -61,38 +73,52 @@ public class NewsAiWriter implements ItemWriter<News> {
                                 .body(n.getBody())
                                 .build())
                         .toList())
-                .existingKeywords(existingKeywords)
+                .existingKeywords(existingKeywords.stream()
+                        .map(k -> NewsBatch.ExistingKeywordInput.builder()
+                                .keywordId(k.getId())
+                                .word(k.getWord())
+                                .normalizedWord(k.getNormalizedWord())
+                                .embedding(k.getEmbedding())
+                                .build())
+                        .toList())
                 .topKKeywords(TOP_K_KEYWORDS)
                 .build();
 
         log.info(">>>> [Batch Writer] Requesting AI analysis for {} news articles. (Chunk size: {})",
                 savedNews.size(), items.size());
 
-        // 4. FastAPI 서버 호출
         NewsBatch.Response aiResponse = aiClient.analyzeNewsBatch(request);
 
-        // 5. AI 분석 결과 반영 (임베딩 및 요약본 업데이트)
+        // 3. 임베딩/요약 업데이트
         for (NewsBatch.NewsAnalysisResult res : aiResponse.getNewsResults()) {
             News news = newsMap.get(res.getNewsId());
             if (news != null) {
                 news.updateEmbedding(res.getEmbedding());
-                news.updateBody(res.getSummary()); // 요약본 반영
+                news.updateBody(res.getSummary());
             }
         }
 
-        // 6. 이번 Chunk에서 나온 소분류(Specific) 키워드 추출
-        Set<String> extractedWords = aiResponse.getNewsResults().stream()
-                .flatMap(res -> res.getKeywords().stream())
-                .map(NewsBatch.KeywordAiResult::getNormalizedWord)
-                .collect(Collectors.toSet());
+        // 4. 이번 청크 키워드 단어 수집
+        Set<String> allNormWords = new HashSet<>();
+        Set<String> allMacroNames = new HashSet<>();
 
-        // 7. 기존 키워드 Map 로드 (소분류 전용)
-        Map<String, Keyword> existingKeywordMap = keywordQueryService.getExistingKeywordsMap(extractedWords);
+        for (NewsBatch.NewsAnalysisResult res : aiResponse.getNewsResults()) {
+            for (NewsBatch.KeywordAiResult kwRes : res.getKeywords()) {
+                if (kwRes.getNormalizedWord() != null) allNormWords.add(kwRes.getNormalizedWord());
+                if (kwRes.getMacro() != null && !kwRes.getMacro().isBlank()) allMacroNames.add(kwRes.getMacro());
+            }
+        }
 
-        // 🌟 [신규 추가] N+1 쿼리 방지용 중분류(Macro) 메모리 캐시
-        Map<String, Keyword> macroCache = new HashMap<>();
+        // 5. 오늘 날짜 기준 한 방 조회 (N+1 방지)
+        Map<String, Keyword> specificCache = keywordRepository.findSpecificsByDate(allNormWords, targetDate)
+                .stream()
+                .collect(Collectors.toMap(Keyword::getNormalizedWord, k -> k, (a, b) -> a));
 
-        // 8. 키워드 계층 매핑 및 신규 저장
+        Map<String, Keyword> macroCache = keywordRepository.findMacrosByDate(allMacroNames, targetDate)
+                .stream()
+                .collect(Collectors.toMap(Keyword::getWord, k -> k, (a, b) -> a));
+
+        // 6. 키워드 계층 매핑 및 신규 저장
         for (NewsBatch.NewsAnalysisResult res : aiResponse.getNewsResults()) {
             News news = newsMap.get(res.getNewsId());
             if (news == null) continue;
@@ -102,7 +128,7 @@ public class NewsAiWriter implements ItemWriter<News> {
                 String macroName = kwRes.getMacro();
                 String personaStr = kwRes.getPersonas();
 
-                // 🌟 A. String으로 온 페르소나를 Enum(UserPersona)으로 안전하게 변환
+                // A. 페르소나 변환
                 UserPersona persona = null;
                 if (personaStr != null && !personaStr.isBlank()) {
                     try {
@@ -112,62 +138,79 @@ public class NewsAiWriter implements ItemWriter<News> {
                     }
                 }
 
-                // 🌟 B. 중분류(Macro) 탐색 및 생성 (DB에 없으면 생성 후 캐시에 넣음)
+                // B. 중분류 탐색 및 생성
                 Keyword macroKeyword = null;
                 if (macroName != null && !macroName.isBlank() && persona != null) {
                     final UserPersona finalPersona = persona;
-                    macroKeyword = macroCache.computeIfAbsent(macroName, name ->
-                            keywordRepository.findByWordAndLevel(name, InterestLevel.MACRO)
-                                    .orElseGet(() -> {
-                                        Keyword newMacro = Keyword.createOnboardingKeyword(name, finalPersona, InterestLevel.MACRO, null);
-                                        return keywordRepository.save(newMacro);
-                                    })
-                    );
+                    final LocalDate finalTargetDate = targetDate;
+                    macroKeyword = macroCache.computeIfAbsent(macroName, name -> {
+                        return keywordRepository.findByWordAndLevelAndTargetDate(name, InterestLevel.MACRO, finalTargetDate)
+                                .orElseGet(() -> {
+                                    Keyword newMacro = Keyword.createMacro(name, finalPersona, finalTargetDate);
+                                    return keywordRepository.save(newMacro);
+                                });
+                    });
                 }
 
-                // 🌟 C. 소분류(Specific) 탐색 및 생성 (중분류 부모 꽂아주기)
+                // C. 소분류 탐색 및 생성
                 final Keyword finalMacroKeyword = macroKeyword;
                 final UserPersona finalSpecificPersona = persona;
+                final LocalDate finalTargetDate = targetDate;
 
-                Keyword keyword = existingKeywordMap.computeIfAbsent(normWord, key -> {
-                    Keyword newKw;
-                    if (finalMacroKeyword != null && finalSpecificPersona != null) {
-                        // 정상 케이스: 중분류 부모가 존재하는 계층형 소분류 생성
-                        newKw = Keyword.createOnboardingKeyword(kwRes.getWord(), finalSpecificPersona, InterestLevel.SPECIFIC, finalMacroKeyword);
-                    } else {
-                        // 예외 케이스: 파이썬에서 분류를 못 해준 경우 기존 평면(Flat) 방식으로 생성
-                        newKw = Keyword.create(kwRes.getWord());
-                    }
-                    newKw.updateEmbedding(kwRes.getEmbedding());
-                    return keywordRepository.save(newKw); // 진짜 새로운 녀석만 INSERT
+                Keyword keyword = specificCache.computeIfAbsent(normWord, key -> {
+                    return keywordRepository.findByNormalizedWordAndLevelAndTargetDate(normWord, InterestLevel.SPECIFIC, finalTargetDate)
+                            .orElseGet(() -> {
+                                Keyword newKw;
+                                if (finalMacroKeyword != null && finalSpecificPersona != null) {
+                                    newKw = Keyword.createSpecific(kwRes.getWord(), finalSpecificPersona, finalMacroKeyword, finalTargetDate);
+                                } else {
+                                    newKw = Keyword.create(kwRes.getWord(), finalTargetDate);
+                                }
+                                newKw.updateEmbedding(kwRes.getEmbedding());
+                                return keywordRepository.save(newKw);
+                            });
                 });
 
                 news.addKeyword(keyword, kwRes.getWeight());
             }
         }
 
-        // 9. 뉴스 최종 업데이트
+        // 7. 뉴스 최종 업데이트
         newsRepository.saveAll(savedNews);
         log.info(">>>> [Batch Writer] Finished analyzing and summarizing {} news articles.", savedNews.size());
 
-        // 10. 키워드 관계 저장
+        // 8. 키워드 관계 저장 (normalized_word 기반으로 자바에서 직접 매핑)
+        // 파이썬 keyword_id가 null인 경우에도 specificCache에서 직접 찾아서 저장
         if (aiResponse.getKeywordRelations() != null && !aiResponse.getKeywordRelations().isEmpty()) {
             List<KeywordRelation> relationsToSave = new ArrayList<>();
 
             for (NewsBatch.KeywordRelationResult relRes : aiResponse.getKeywordRelations()) {
-                if (relRes.getSourceKeywordId() != null && relRes.getTargetKeywordId() != null) {
-                    Keyword source = keywordRepository.findById(relRes.getSourceKeywordId()).orElse(null);
-                    Keyword target = keywordRepository.findById(relRes.getTargetKeywordId()).orElse(null);
+                String subjectNorm = relRes.getSubjectNormalizedWord();
+                String relatedNorm = relRes.getRelatedNormalizedWord();
 
-                    if (source != null && target != null) {
-                        relationsToSave.add(KeywordRelation.create(source, target, relRes.getRelationScore()));
-                    }
+                if (subjectNorm == null || relatedNorm == null) {
+                    log.warn(">>>> [Batch Writer] Skipping relation with null normalized_word: subject={}, related={}", subjectNorm, relatedNorm);
+                    continue;
                 }
+
+                Keyword source = specificCache.get(subjectNorm);
+                Keyword target = specificCache.get(relatedNorm);
+
+                if (source == null || target == null) {
+                    log.warn(">>>> [Batch Writer] Skipping relation: keyword not found in cache. subject={}, related={}", subjectNorm, relatedNorm);
+                    continue;
+                }
+
+                if (source.getId().equals(target.getId())) continue;
+
+                relationsToSave.add(KeywordRelation.create(source, target, relRes.getRelationScore()));
             }
 
             if (!relationsToSave.isEmpty()) {
                 keywordRelationRepository.saveAll(relationsToSave);
                 log.info(">>>> [Batch Writer] Successfully saved {} keyword relations.", relationsToSave.size());
+            } else {
+                log.warn(">>>> [Batch Writer] No keyword relations to save. (relations from AI: {})", aiResponse.getKeywordRelations().size());
             }
         }
     }

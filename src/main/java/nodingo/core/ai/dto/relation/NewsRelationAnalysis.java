@@ -19,6 +19,7 @@ public class NewsRelationAnalysis {
         @JsonProperty("min_score")
         private Double similarityThreshold;
 
+        @JsonProperty("top_k")
         private Integer topK;
     }
 
@@ -32,15 +33,20 @@ public class NewsRelationAnalysis {
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class NewsEmbeddingInput {
+        @JsonProperty("news_id")
         private Long newsId;
+        @JsonProperty("embedding")
         private float[] embedding;
     }
 
     @Getter
     @NoArgsConstructor @AllArgsConstructor
     public static class RelationResult {
+        @JsonProperty("subject_news_id")
         private Long subjectNewsId;
+        @JsonProperty("related_news_id")
         private Long relatedNewsId;
+        @JsonProperty("relation_score")
         private Double relationScore;
     }
 }

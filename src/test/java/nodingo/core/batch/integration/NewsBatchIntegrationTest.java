@@ -172,7 +172,7 @@ class NewsBatchIntegrationTest {
 
                     return NewsBatch.Response.builder()
                             .newsResults(newsResults)
-                            .keywordRelations(List.of(new NewsBatch.KeywordRelationResult(1L, 2L, 0.85)))
+                            .keywordRelations(List.of(new NewsBatch.KeywordRelationResult(1L, 2L, "키워드A", "키워드B", 0.85)))
                             .build();
                 });
 
