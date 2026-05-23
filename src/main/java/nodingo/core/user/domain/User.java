@@ -67,6 +67,10 @@ public class User extends BaseTimeEntity implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserInterest> interests = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OnboardingStatus onboardingStatus = OnboardingStatus.PENDING;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_USER"));
@@ -103,19 +107,22 @@ public class User extends BaseTimeEntity implements UserDetails {
         this.refreshToken = refreshToken;
     }
 
-    // User.java
     public void completeOnboarding(List<UserPersona> personas) {
         if (personas == null || personas.isEmpty()) {
-            throw new IllegalArgumentException("최소 1개의 페르소나를 선택해야 합니다.");
+            throw new IllegalArgumentException("At least one persona must be selected.");
         }
         if (personas.size() > 1) {
-            throw new IllegalArgumentException("페르소나(대분류)는 1개만 선택 가능합니다.");
+            throw new IllegalArgumentException("Only one persona can be selected.");
         }
         this.personas = new ArrayList<>(personas);
     }
 
+    public void updateOnboardingStatus(OnboardingStatus status) { // 🔥 추가
+        this.onboardingStatus = status;
+    }
+
     public boolean isOnboardingCompleted() {
-        return !this.personas.isEmpty();
+        return this.onboardingStatus == OnboardingStatus.COMPLETED; // 🔥 수정
     }
 
     public UserInterest addInterest(Keyword keyword,

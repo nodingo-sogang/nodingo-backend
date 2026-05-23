@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import nodingo.core.global.annotation.RequireOnboardingCompleted;
 import nodingo.core.global.auth.CustomOAuth2User;
 import nodingo.core.global.dto.response.ApiResponse;
 import nodingo.core.graph.dto.response.GraphDataResponse;
@@ -18,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Graph", description = "이슈 맵 그래프 시각화 관련 API")
+@RequireOnboardingCompleted
 @RestController
 @RequestMapping("/api/graphs")
 @RequiredArgsConstructor

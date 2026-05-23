@@ -28,6 +28,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class OnboardingService {
+
     private final UserRepository userRepository;
     private final KeywordRepository keywordRepository;
     private final UserInterestRepository userInterestRepository;

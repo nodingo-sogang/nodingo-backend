@@ -8,6 +8,7 @@ import nodingo.core.global.exception.keyword.KeywordNotFoundException;
 import nodingo.core.global.exception.news.NewsIllegalException;
 import nodingo.core.global.exception.news.NewsNotFoundException;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
+import nodingo.core.global.exception.user.OnboardingNotCompletedException;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.global.exception.scrap.DuplicateScrapException;
 import nodingo.core.global.exception.scrap.ScrapNotFoundException;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -24,14 +26,15 @@ public class GlobalExceptionHandler {
 
     // 유효성 검증 실패 (DTO Validation)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    protected ResponseEntity<ApiResponse<?>> handleValidationExceptions(MethodArgumentNotValidException e) {
-        String errorMessage = e.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
-                .collect(Collectors.joining(", "));
+    public ResponseEntity<ApiResponse<List<String>>> handleValidationExceptions(MethodArgumentNotValidException e) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "입력 값이 유효하지 않습니다.", getErrorFields(e));
+    }
 
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, errorMessage);
+    //OnboardingNotCompletedException
+    @ExceptionHandler(OnboardingNotCompletedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOnboardingNotCompleted(OnboardingNotCompletedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiResponse<>(false, 403, e.getMessage(), null));
     }
 
     //InvalidTokenException
@@ -106,5 +109,13 @@ public class GlobalExceptionHandler {
     private <T> ResponseEntity<ApiResponse<T>> buildErrorResponse(HttpStatus status, String message, T data) {
         ApiResponse<T> response = new ApiResponse<>(false, status.value(), message, data);
         return ResponseEntity.status(status).body(response);
+    }
+
+    private static List<String> getErrorFields(MethodArgumentNotValidException e) {
+        return e.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
+                .collect(Collectors.toList());
     }
 }

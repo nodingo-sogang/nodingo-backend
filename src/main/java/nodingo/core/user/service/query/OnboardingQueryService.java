@@ -1,13 +1,13 @@
 package nodingo.core.user.service.query;
 
 import lombok.RequiredArgsConstructor;
+import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.keyword.repository.KeywordRepository;
 import nodingo.core.user.domain.InterestLevel;
+import nodingo.core.user.domain.OnboardingStatus;
 import nodingo.core.user.domain.UserPersona;
-import nodingo.core.user.dto.result.KeywordListResult;
-import nodingo.core.user.dto.result.KeywordResult;
-import nodingo.core.user.dto.result.PersonaListResult;
-import nodingo.core.user.dto.result.PersonaResult;
+import nodingo.core.user.dto.result.*;
+import nodingo.core.user.repository.UserRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,6 +24,7 @@ import java.util.List;
 public class OnboardingQueryService {
 
     private final KeywordRepository keywordRepository;
+    private final UserRepository userRepository;
     private static final int KEYWORD_LIMIT = 6;
 
     public PersonaListResult getPersonas() {
@@ -42,6 +43,13 @@ public class OnboardingQueryService {
                 .map(KeywordResult::from)
                 .toList();
         return KeywordListResult.from(results);
+    }
+
+    public OnboardingStatusResult getOnboardingStatus(Long userId) {
+        OnboardingStatus status = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found."))
+                .getOnboardingStatus();
+        return OnboardingStatusResult.of(status);
     }
 
     public KeywordListResult getSpecificKeywords(Long macroId) {
