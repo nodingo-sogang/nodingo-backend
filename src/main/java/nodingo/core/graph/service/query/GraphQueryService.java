@@ -13,7 +13,6 @@ import nodingo.core.keyword.domain.KeywordRelation;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.KeywordRelationRepository;
 import nodingo.core.keyword.repository.RecommendKeywordRepository;
-import nodingo.core.user.repository.UserRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;

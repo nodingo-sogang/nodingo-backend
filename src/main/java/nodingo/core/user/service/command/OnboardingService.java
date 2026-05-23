@@ -28,40 +28,29 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class OnboardingService {
-
     private final UserRepository userRepository;
     private final KeywordRepository keywordRepository;
     private final UserInterestRepository userInterestRepository;
-    private final UserVectorService userVectorService;
-    private final RecommendKeywordInitService recommendKeywordInitService;
 
-    public void saveOnboardingInfo(SaveOnboardingCommand command) {
+    public List<Long> saveOnboardingInfo(SaveOnboardingCommand command) {
         User user = getUser(command.getUserId());
-
         userInterestRepository.deleteTodayInterests(user.getId(), LocalDate.now());
-
         user.completeOnboarding(command.getPersonas());
-
         userRepository.save(user);
 
         List<Long> allKeywordIds = extractAllKeywordIds(command);
         Map<Long, Keyword> keywordMap = getKeywordMap(allKeywordIds);
 
-        List<Keyword> selectedKeywords = new ArrayList<>(keywordMap.values());
-
         InterestCommand interestCmd = command.getInterest();
         Keyword macroKeyword = getKeywordFromMap(keywordMap, interestCmd.getMacroId());
-        UserInterest macroInterest = user.addInterest(
-                macroKeyword, InterestLevel.MACRO, null, LocalDate.now());
+        UserInterest macroInterest = user.addInterest(macroKeyword, InterestLevel.MACRO, null, LocalDate.now());
 
         for (Long specificId : interestCmd.getSpecificIds()) {
             Keyword specificKeyword = getKeywordFromMap(keywordMap, specificId);
-            user.addInterest(
-                    specificKeyword, InterestLevel.SPECIFIC, macroInterest, LocalDate.now());
+            user.addInterest(specificKeyword, InterestLevel.SPECIFIC, macroInterest, LocalDate.now());
         }
 
-        userVectorService.initUserEmbedding(user, selectedKeywords);
-        recommendKeywordInitService.initForNewUser(user);
+        return allKeywordIds;
     }
 
     private User getUser(Long userId) {

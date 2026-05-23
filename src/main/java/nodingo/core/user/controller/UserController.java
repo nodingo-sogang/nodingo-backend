@@ -15,12 +15,14 @@ import nodingo.core.user.dto.response.KeywordListResponse;
 import nodingo.core.user.dto.response.PersonaListResponse;
 import nodingo.core.user.dto.result.KeywordListResult;
 import nodingo.core.user.dto.result.PersonaListResult;
+import nodingo.core.user.service.async.OnboardingAsyncService;
 import nodingo.core.user.service.query.OnboardingQueryService;
 import nodingo.core.user.service.command.OnboardingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @Tag(name = "User", description = "사용자 관련 API")
 @RestController
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final OnboardingService onboardingService;
+    private final OnboardingAsyncService onboardingAsyncService;
     private final OnboardingQueryService onboardingQueryService;
 
     @Operation(
@@ -85,7 +88,9 @@ public class UserController {
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
             @Valid @RequestBody OnboardingRequest request) {
         User loginUser = customOAuth2User.getUser();
-        onboardingService.saveOnboardingInfo(SaveOnboardingCommand.from(loginUser.getId(), request));
+        SaveOnboardingCommand command = SaveOnboardingCommand.from(loginUser.getId(), request);
+        List<Long> keywordIds = onboardingService.saveOnboardingInfo(command);
+        onboardingAsyncService.initEmbeddingAndRecommend(loginUser.getId(), keywordIds);
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, 201, "성공적으로 온보딩 관심사 설정을 완료했습니다."));
     }
 }
