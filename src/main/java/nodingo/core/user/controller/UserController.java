@@ -12,8 +12,10 @@ import nodingo.core.user.domain.UserPersona;
 import nodingo.core.user.dto.command.SaveOnboardingCommand;
 import nodingo.core.user.dto.request.OnboardingRequest;
 import nodingo.core.user.dto.response.KeywordListResponse;
+import nodingo.core.user.dto.response.OnboardingStatusResponse;
 import nodingo.core.user.dto.response.PersonaListResponse;
 import nodingo.core.user.dto.result.KeywordListResult;
+import nodingo.core.user.dto.result.OnboardingStatusResult;
 import nodingo.core.user.dto.result.PersonaListResult;
 import nodingo.core.user.service.async.OnboardingAsyncService;
 import nodingo.core.user.service.query.OnboardingQueryService;
@@ -91,6 +93,21 @@ public class UserController {
         SaveOnboardingCommand command = SaveOnboardingCommand.from(loginUser.getId(), request);
         List<Long> keywordIds = onboardingService.saveOnboardingInfo(command);
         onboardingAsyncService.initEmbeddingAndRecommend(loginUser.getId(), keywordIds);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, 201, "성공적으로 온보딩 관심사 설정을 완료했습니다."));
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(new ApiResponse<>(true, 202, "성공적으로 온보딩 관심사 설정을 요청하였습니다."));
+    }
+
+    @Operation(
+            summary = "온보딩 상태 조회",
+            description = "온보딩 처리 상태를 조회합니다. PENDING/COMPLETED/FAILED"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공적으로 온보딩 상태를 조회했습니다.")
+    })
+    @GetMapping("/onboarding/status")
+    public ResponseEntity<ApiResponse<OnboardingStatusResponse>> getOnboardingStatus(
+            @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+        OnboardingStatusResult result = onboardingQueryService.getOnboardingStatus(customOAuth2User.getUser().getId());
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 온보딩 상태를 조회했습니다.", OnboardingStatusResponse.from(result)));
     }
 }
