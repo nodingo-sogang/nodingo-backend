@@ -1,7 +1,7 @@
 package nodingo.core.keyword.service.query;
 
 import lombok.RequiredArgsConstructor;
-import nodingo.core.global.utils.SliceUtils;
+import nodingo.core.global.util.SliceUtil;
 import nodingo.core.graph.dto.result.NodeSummaryResult;
 import nodingo.core.keyword.dto.result.ScrapKeywordNodeResult;
 import nodingo.core.user.domain.UserScrap;
@@ -28,7 +28,7 @@ public class RecommendKeywordScrapQueryService {
         List<ScrapKeywordNodeResult> content = scraps.stream()
                 .map(ScrapKeywordNodeResult::from)
                 .collect(Collectors.toList());
-        return SliceUtils.checkLastPage(pageable, content);
+        return SliceUtil.checkLastPage(pageable, content);
     }
 
     public Slice<NodeSummaryResult> getScrapKeywordSummaries(Long userId, int page) {
@@ -37,6 +37,6 @@ public class RecommendKeywordScrapQueryService {
         List<NodeSummaryResult> content = scraps.stream()
                 .map(scrap -> NodeSummaryResult.from(scrap.getRecommendKeyword()))
                 .collect(Collectors.toList());
-        return SliceUtils.checkLastPage(pageable, content);
+        return SliceUtil.checkLastPage(pageable, content);
     }
 }
