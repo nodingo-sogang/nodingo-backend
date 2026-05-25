@@ -2,7 +2,6 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: nodingo-postgres
-
     deploy:
       resources:
         limits:
@@ -12,7 +11,7 @@ services:
     environment:
       POSTGRES_DB: nodingo
       POSTGRES_USER: nodingo_user
-      POSTGRES_PASSWORD: 20200129
+      POSTGRES_PASSWORD: "20200129"
     ports:
       - "5432:5432"
     volumes:

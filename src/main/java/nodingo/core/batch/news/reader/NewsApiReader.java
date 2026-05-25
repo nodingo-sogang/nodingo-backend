@@ -23,7 +23,7 @@ public class NewsApiReader implements ItemReader<NewsApiItem> {
 
     private final NewsFetchService newsFetchService;
 
-    private static final int MAX_TEST_PAGES = 1;
+    private static final int MAX_TEST_PAGES = 5;
     private int currentPage = 1;
     private Iterator<NewsApiItem> itemIterator = Collections.emptyIterator();
     private boolean isEnd = false;

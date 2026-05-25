@@ -117,12 +117,12 @@ public class User extends BaseTimeEntity implements UserDetails {
         this.personas = new ArrayList<>(personas);
     }
 
-    public void updateOnboardingStatus(OnboardingStatus status) { // 🔥 추가
+    public void updateOnboardingStatus(OnboardingStatus status) {
         this.onboardingStatus = status;
     }
 
     public boolean isOnboardingCompleted() {
-        return this.onboardingStatus == OnboardingStatus.COMPLETED; // 🔥 수정
+        return this.onboardingStatus == OnboardingStatus.COMPLETED;
     }
 
     public UserInterest addInterest(Keyword keyword,
