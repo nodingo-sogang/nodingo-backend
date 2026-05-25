@@ -39,7 +39,6 @@ public class NotificationScheduler {
     @Scheduled(cron = "0 0 * * * *")
     public void runHourlyNotificationBatch() {
         log.info("⏰Every hour on the hour! Starting the notification batch process.");
-
         try {
             JobParameters jobParameters = new JobParametersBuilder()
                     .addLocalDateTime("requestTime", LocalDateTime.now())
