@@ -119,7 +119,9 @@ news:
 
 app:
   oauth2:
-    redirect-uri: /auth/callback.html
+    redirect-uri: /auth/callback.html #http://localhost:3000/auth/callback
+
+FIREBASE_CONFIG_PATH: file:C:/likelion14th/core/core/src/main/resources/serviceAccountKey.json
 
 logging:
   level:
