@@ -86,7 +86,7 @@ public class GraphQueryService {
         log.info(">>>> [Graph Debug] aiResponse nodes: {}, edges: {}",
                 aiResponse.getNodes().size(), aiResponse.getEdges().size());
 
-        return GraphDataResult.from(aiResponse);
+        return GraphDataResult.from(filterUnknownNodes(aiResponse));
     }
 
     public NodeSummaryResult getNodeSummary(Long userId, Long keywordId) {
@@ -148,6 +148,26 @@ public class GraphQueryService {
         return LocalTime.now().isBefore(LocalTime.of(5, 0))
                 ? LocalDate.now().minusDays(1)
                 : LocalDate.now();
+    }
+
+    private GraphPreview.Response filterUnknownNodes(GraphPreview.Response response) {
+        List<GraphPreview.GraphNode> filteredNodes = response.getNodes().stream()
+                .filter(node -> !"Unknown".equals(node.getLabel()))
+                .toList();
+
+        Set<Long> validNodeIds = filteredNodes.stream()
+                .map(GraphPreview.GraphNode::getId)
+                .collect(Collectors.toSet());
+
+        List<GraphPreview.GraphEdge> filteredEdges = response.getEdges().stream()
+                .filter(edge -> validNodeIds.contains(edge.getSource())
+                        && validNodeIds.contains(edge.getTarget()))
+                .toList();
+
+        return GraphPreview.Response.builder()
+                .nodes(filteredNodes)
+                .edges(filteredEdges)
+                .build();
     }
 
     private RecommendKeyword getOrElseThrow(Long userId, Long keywordId) {
