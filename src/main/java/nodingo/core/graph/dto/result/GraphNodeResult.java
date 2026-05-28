@@ -16,14 +16,24 @@ public class GraphNodeResult {
     private double score;
     private String summary;
     private String persona;
+    private Integer unlockLevel;
+    private String visibility;
+    private Boolean explored;
+    private Boolean scrapped;
+    private Integer newsCount;
 
-    public static GraphNodeResult from(GraphPreview.GraphNode node) {
+    public static GraphNodeResult from(GraphPreview.GraphNode aiNode, boolean explored, boolean scrapped, int newsCount) {
         return GraphNodeResult.builder()
-                .id(node.getId())
-                .label(node.getLabel())
-                .score(node.getScore())
-                .summary(node.getSummary())
-                .persona(node.getPersona())
+                .id(aiNode.getId())
+                .label(aiNode.getLabel())
+                .score(aiNode.getScore())
+                .summary(aiNode.getSummary())
+                .persona(aiNode.getPersona())
+                .unlockLevel(aiNode.getUnlockLevel() != null ? aiNode.getUnlockLevel() : 1)
+                .visibility(aiNode.getVisibility() != null ? aiNode.getVisibility() : "VISIBLE")
+                .explored(explored)
+                .scrapped(scrapped)
+                .newsCount(newsCount)
                 .build();
     }
 }

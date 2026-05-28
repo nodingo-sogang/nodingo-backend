@@ -14,12 +14,15 @@ import nodingo.core.user.dto.request.OnboardingRequest;
 import nodingo.core.user.dto.response.KeywordListResponse;
 import nodingo.core.user.dto.response.OnboardingStatusResponse;
 import nodingo.core.user.dto.response.PersonaListResponse;
+import nodingo.core.user.dto.response.UserProgressResponse;
 import nodingo.core.user.dto.result.KeywordListResult;
 import nodingo.core.user.dto.result.OnboardingStatusResult;
 import nodingo.core.user.dto.result.PersonaListResult;
+import nodingo.core.user.dto.result.UserProgressResult;
 import nodingo.core.user.service.async.OnboardingAsyncService;
 import nodingo.core.user.service.query.OnboardingQueryService;
 import nodingo.core.user.service.command.OnboardingService;
+import nodingo.core.user.service.query.UserProgressQueryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,6 +38,7 @@ public class UserController {
     private final OnboardingService onboardingService;
     private final OnboardingAsyncService onboardingAsyncService;
     private final OnboardingQueryService onboardingQueryService;
+    private final UserProgressQueryService userProgressQueryService;
 
     @Operation(
             summary = "대분류(Persona) 목록 조회",
@@ -109,5 +113,21 @@ public class UserController {
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
         OnboardingStatusResult result = onboardingQueryService.getOnboardingStatus(customOAuth2User.getUser().getId());
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 온보딩 상태를 조회했습니다.", OnboardingStatusResponse.from(result)));
+    }
+
+    @Operation(
+            summary = "내 탐험 진행률 조회",
+            description = "전체 노드 대비 유저가 탐험한 노드의 비율 및 카운트를 조회합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "진행률 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "온보딩 미완료 유저"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "유저 정보를 찾을 수 없음")
+    })
+    @GetMapping("/progress")
+    public ResponseEntity<ApiResponse<UserProgressResponse>> getMyProgress(
+            @AuthenticationPrincipal CustomOAuth2User user) {
+        UserProgressResult result = userProgressQueryService.getMyProgress(user.getUser().getId());
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "진행률 조회 성공", UserProgressResponse.from(result)));
     }
 }

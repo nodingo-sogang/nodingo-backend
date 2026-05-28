@@ -59,6 +59,9 @@ public class Keyword extends BaseTimeEntity {
     @JoinColumn(name = "parent_id")
     private Keyword parent;
 
+    @Column(nullable = false, columnDefinition = "integer default 1")
+    private Integer unlockLevel = 1;
+
     @OneToMany(mappedBy = "keyword", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<KeywordAlias> aliases = new ArrayList<>();
 
@@ -133,6 +136,12 @@ public class Keyword extends BaseTimeEntity {
 
     private static String normalize(String input) {
         return input.toLowerCase().trim();
+    }
+
+    public void updateUnlockLevel(Integer unlockLevel) {
+        if (unlockLevel != null) {
+            this.unlockLevel = unlockLevel;
+        }
     }
 
     private static float[] emptyEmbedding() {

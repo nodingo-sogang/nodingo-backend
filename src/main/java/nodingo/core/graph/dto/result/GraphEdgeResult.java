@@ -15,11 +15,11 @@ public class GraphEdgeResult {
     private Long target;
     private double weight;
 
-    public static GraphEdgeResult from(GraphPreview.GraphEdge edge) {
+    public static GraphEdgeResult from(GraphPreview.GraphEdge aiEdge) {
         return GraphEdgeResult.builder()
-                .source(edge.getSource())
-                .target(edge.getTarget())
-                .weight(edge.getWeight())
+                .source(aiEdge.getSource())
+                .target(aiEdge.getTarget())
+                .weight(aiEdge.getWeight())
                 .build();
-    }
+
 }

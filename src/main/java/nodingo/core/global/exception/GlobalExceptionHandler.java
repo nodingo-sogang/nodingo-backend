@@ -7,6 +7,7 @@ import nodingo.core.global.exception.auth.TokenNotFoundException;
 import nodingo.core.global.exception.keyword.KeywordNotFoundException;
 import nodingo.core.global.exception.news.NewsIllegalException;
 import nodingo.core.global.exception.news.NewsNotFoundException;
+import nodingo.core.global.exception.quiz.QuizNotFoundException;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
 import nodingo.core.global.exception.user.OnboardingNotCompletedException;
 import nodingo.core.global.exception.user.UserNotFoundException;
@@ -76,6 +77,12 @@ public class GlobalExceptionHandler {
     //UserScrapNotFoundException
     @ExceptionHandler(ScrapNotFoundException.class)
     protected ResponseEntity<ApiResponse<?>> handleUserScrapNotFoundException(ScrapNotFoundException e) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    //QuizNotFoundException
+    @ExceptionHandler(QuizNotFoundException.class)
+    protected ResponseEntity<ApiResponse<?>> handleQuizNotFoundException(QuizNotFoundException e) {
         return buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
     }
 

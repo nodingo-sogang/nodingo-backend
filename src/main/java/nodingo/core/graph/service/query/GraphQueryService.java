@@ -5,14 +5,16 @@ import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.graphPreview.GraphPreview;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
-import nodingo.core.graph.dto.result.GraphDataResult;
-import nodingo.core.graph.dto.result.NodeSummaryResult;
-import nodingo.core.graph.dto.result.TabListResult;
-import nodingo.core.graph.dto.result.TabResult;
+import nodingo.core.graph.dto.result.*;
 import nodingo.core.keyword.domain.KeywordRelation;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.KeywordRelationRepository;
+import nodingo.core.keyword.repository.NewsKeywordRepository;
 import nodingo.core.keyword.repository.RecommendKeywordRepository;
+import nodingo.core.keyword.repository.UserKeywordExploreRepository;
+import nodingo.core.news.domain.News;
+import nodingo.core.graph.dto.NewsItemBrief;
+import nodingo.core.user.repository.UserInterestRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -28,35 +30,31 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GraphQueryService {
-    private final static int KEYWORD_LIMIT = 4;
-    private final static int RELATED_KEYWORD_LIMIT = 8;
+    private static final int KEYWORD_LIMIT = 20;
+    private static final int RELATED_KEYWORD_LIMIT = 30;
 
     private final AiClient aiClient;
     private final RecommendKeywordRepository recommendKeywordRepository;
     private final KeywordRelationRepository keywordRelationRepository;
+    private final UserKeywordExploreRepository exploreRepository;
+    private final UserInterestRepository interestRepository;
+    private final NewsKeywordRepository newsKeywordRepository;
 
     public TabListResult getTodayTabs(Long userId) {
         LocalDate targetDate = getTargetDate();
         List<RecommendKeyword> recommendKeywords = recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate);
-        List<TabResult> tabs = recommendKeywords.stream()
-                .sorted(Comparator.comparingDouble(RecommendKeyword::getScore).reversed())
-                .limit(KEYWORD_LIMIT)
-                .map(TabResult::of)
-                .toList();
+        List<TabResult> tabs = getTabResults(recommendKeywords);
         return TabListResult.of(tabs);
     }
 
     @Cacheable(value = "batch:graph", key = "#userId + ':' + (#centralKeywordId == null ? 'ALL' : #centralKeywordId)")
     public GraphDataResult getGraphPreview(Long userId, Long centralKeywordId) {
+
         Map<Long, RecommendKeyword> recommendMap = getRecommendKeywordMap(userId);
         List<KeywordRelation> targetRelations;
 
         if (centralKeywordId == null) {
-            List<Long> topTabIds = recommendMap.values().stream()
-                    .sorted(Comparator.comparingDouble(RecommendKeyword::getScore).reversed())
-                    .limit(KEYWORD_LIMIT)
-                    .map(rk -> rk.getKeyword().getId())
-                    .toList();
+            List<Long> topTabIds = getTopTabIds(recommendMap);
 
             targetRelations = topTabIds.stream()
                     .flatMap(id -> keywordRelationRepository
@@ -86,18 +84,63 @@ public class GraphQueryService {
         log.info(">>>> [Graph Debug] aiResponse nodes: {}, edges: {}",
                 aiResponse.getNodes().size(), aiResponse.getEdges().size());
 
-        return GraphDataResult.from(filterUnknownNodes(aiResponse));
+        GraphPreview.Response filteredResponse = filterUnknownNodes(aiResponse);
+
+        List<Long> nodeIds = filteredResponse.getNodes().stream()
+                .map(GraphPreview.GraphNode::getId)
+                .toList();
+
+        Set<Long> exploredIds = exploreRepository.findExploredKeywordIdsByUserId(userId);
+        Set<Long> scrappedIds = interestRepository.findScrappedKeywordIdsByUserId(userId);
+        Map<Long, Integer> newsCountMap = newsKeywordRepository.countNewsByKeywordIds(nodeIds);
+
+        return buildGraphDataResult(filteredResponse, exploredIds, scrappedIds, newsCountMap);
     }
 
-    public NodeSummaryResult getNodeSummary(Long userId, Long keywordId) {
-        RecommendKeyword recommendKeyword = getOrElseThrow(userId, keywordId);
-        return NodeSummaryResult.from(recommendKeyword);
+    private static List<Long> getTopTabIds(Map<Long, RecommendKeyword> recommendMap) {
+        return recommendMap.values().stream()
+                .sorted(Comparator.comparingDouble(RecommendKeyword::getScore).reversed())
+                .limit(KEYWORD_LIMIT)
+                .map(rk -> rk.getKeyword().getId())
+                .toList();
     }
 
-    private Map<Long, RecommendKeyword> getRecommendKeywordMap(Long userId) {
+    public NodeSummaryResult getNodeSummary(Long userId, Long nodeId) {
         LocalDate targetDate = getTargetDate();
-        return recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate).stream()
-                .collect(Collectors.toMap(rk -> rk.getKeyword().getId(), rk -> rk));
+
+        RecommendKeyword recommendKeyword = recommendKeywordRepository
+                .findByUserIdAndKeywordIdAndTargetDate(userId, nodeId, targetDate)
+                .orElseThrow(() -> new IllegalArgumentException("해당 키워드에 대한 요약 정보를 찾을 수 없습니다."));
+
+        List<News> relatedNews = newsKeywordRepository.findNewsEntitiesByKeywordId(nodeId);
+
+        List<NewsItemBrief> newsBriefs = relatedNews.stream()
+                .map(news -> {
+                    String safeSnippet = news.getBody();
+                    if (safeSnippet != null && safeSnippet.length() > 100) {
+                        safeSnippet = safeSnippet.substring(0, 100) + "...";
+                    }
+
+                    return NewsItemBrief.builder()
+                            .id(news.getId())
+                            .title(news.getTitle())
+                            .url(news.getUrl())
+                            .outlet("뉴스 원문")
+                            .date(news.getDateTimePub() != null ? news.getDateTimePub().toLocalDate() : null)
+                            .snippet(safeSnippet)
+                            .build();
+                })
+                .toList();
+
+        return NodeSummaryResult.from(recommendKeyword, newsBriefs);
+    }
+
+    private static List<TabResult> getTabResults(List<RecommendKeyword> recommendKeywords) {
+        return recommendKeywords.stream()
+                .sorted(Comparator.comparingDouble(RecommendKeyword::getScore).reversed())
+                .limit(KEYWORD_LIMIT)
+                .map(TabResult::of)
+                .toList();
     }
 
     private GraphPreview.Request createAiRequest(Long centralId, List<KeywordRelation> relations, Map<Long, RecommendKeyword> recommendMap) {
@@ -150,6 +193,28 @@ public class GraphQueryService {
                 : LocalDate.now();
     }
 
+    private GraphDataResult buildGraphDataResult(
+            GraphPreview.Response response,
+            Set<Long> exploredIds,
+            Set<Long> scrappedIds,
+            Map<Long, Integer> newsCountMap) {
+
+        List<GraphNodeResult> nodes = response.getNodes().stream()
+                .map(node -> GraphNodeResult.from(
+                        node,
+                        exploredIds.contains(node.getId()),
+                        scrappedIds.contains(node.getId()),
+                        newsCountMap.getOrDefault(node.getId(), 0)
+                ))
+                .toList();
+
+        List<GraphEdgeResult> edges = response.getEdges().stream()
+                .map(GraphEdgeResult::from)
+                .toList();
+
+        return new GraphDataResult(nodes, edges);
+    }
+
     private GraphPreview.Response filterUnknownNodes(GraphPreview.Response response) {
         List<GraphPreview.GraphNode> filteredNodes = response.getNodes().stream()
                 .filter(node -> !"Unknown".equals(node.getLabel()))
@@ -170,8 +235,14 @@ public class GraphQueryService {
                 .build();
     }
 
-    private RecommendKeyword getOrElseThrow(Long userId, Long keywordId) {
-        return recommendKeywordRepository.findRecommend(userId, keywordId)
-                .orElseThrow(() -> new RecommendKeywordNotFoundException("추천 키워드를 찾을 수 없습니다."));
+    private Map<Long, RecommendKeyword> getRecommendKeywordMap(Long userId) {
+        LocalDate targetDate = getTargetDate();
+
+        return recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate).stream()
+                .collect(Collectors.toMap(
+                        rk -> rk.getKeyword().getId(),
+                        rk -> rk,
+                        (existing, replacement) -> existing
+                ));
     }
 }
