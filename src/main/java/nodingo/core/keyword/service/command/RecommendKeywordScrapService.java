@@ -1,7 +1,7 @@
 package nodingo.core.keyword.service.command;
 
 import lombok.RequiredArgsConstructor;
-import nodingo.core.game.utils.GamePolicy;
+import nodingo.core.user.utils.GamePolicy;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
 import nodingo.core.global.exception.scrap.DuplicateScrapException;
 import nodingo.core.global.exception.scrap.ScrapNotFoundException;

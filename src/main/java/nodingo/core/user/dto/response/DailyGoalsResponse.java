@@ -1,8 +1,8 @@
-package nodingo.core.game.dto.response;
+package nodingo.core.user.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;
-import nodingo.core.game.dto.result.DailyGoalsResult;
+import nodingo.core.user.dto.result.DailyGoalsResult;
 
 @Getter
 @Builder

@@ -1,10 +1,8 @@
-package nodingo.core.game.service.query;
+package nodingo.core.user.service.query;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import nodingo.core.game.dto.result.DailyGoalsResult;
-import nodingo.core.game.dto.result.GameProfileResult;
-import nodingo.core.game.dto.result.UserGameResult;
+import nodingo.core.user.dto.result.GameProfileResult;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.user.domain.User;
 import nodingo.core.user.repository.UserRepository;

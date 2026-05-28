@@ -1,4 +1,4 @@
-package nodingo.core.game.utils;
+package nodingo.core.user.utils;
 
 public interface GamePolicy {
     int getExploreXp();      // 노드 탐험 시 XP

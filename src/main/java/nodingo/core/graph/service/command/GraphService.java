@@ -2,7 +2,7 @@ package nodingo.core.graph.service.command;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import nodingo.core.game.utils.GamePolicy;
+import nodingo.core.user.utils.GamePolicy;
 import nodingo.core.global.exception.keyword.KeywordNotFoundException;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.keyword.domain.Keyword;

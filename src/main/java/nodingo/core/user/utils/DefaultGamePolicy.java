@@ -1,4 +1,4 @@
-package nodingo.core.game.utils;
+package nodingo.core.user.utils;
 
 import org.springframework.stereotype.Component;
 

@@ -1,4 +1,4 @@
-package nodingo.core.game.dto.result;
+package nodingo.core.user.dto.result;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

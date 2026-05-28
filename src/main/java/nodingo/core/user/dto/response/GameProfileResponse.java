@@ -1,8 +1,9 @@
-package nodingo.core.game.dto.response;
+package nodingo.core.user.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;
-import nodingo.core.game.dto.result.GameProfileResult;
+import nodingo.core.user.dto.result.GameProfileResult;
+
 @Getter
 @Builder
 public class GameProfileResponse {
