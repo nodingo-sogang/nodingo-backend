@@ -21,5 +21,5 @@ public class GraphEdgeResult {
                 .target(aiEdge.getTarget())
                 .weight(aiEdge.getWeight())
                 .build();
-
+    }
 }
