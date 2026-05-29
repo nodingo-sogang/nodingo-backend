@@ -207,9 +207,29 @@ public class User extends BaseTimeEntity implements UserDetails {
         return isLevelUp;
     }
 
+    /**
+     * XP 차감 (스크랩 취소 등) - 현재 레벨에서 XP가 0 미만으로 떨어져 강등되지는 않음
+     */
+    public void removeXp(int lostXp) {
+        this.xp = Math.max(0, this.xp - lostXp);
+    }
+
+    /**
+     * 스크랩 카운트 증가
+     */
+    public void addKeywordScrap() {
+        this.totalKeywordsScrapped++;
+    }
+
+    /**
+     * 스크랩 카운트 차감 (0 미만 방지)
+     */
+    public void removeKeywordScrap() {
+        this.totalKeywordsScrapped = Math.max(0, this.totalKeywordsScrapped - 1);
+    }
+
     public void addNodeExplore() { this.totalNodesExplored++; }
 
-    public void addKeywordScrap() { this.totalKeywordsScrapped++; }
 
     /**
      * 일일 퀴즈 목표(2회) 달성 여부 체크
@@ -226,10 +246,9 @@ public class User extends BaseTimeEntity implements UserDetails {
 
         return this.dailyQuizzesCompleted == 2;
     }
-
     /**
      * 출석 트래킹 및 연속 출석 체크
-     * @return 오늘 첫 출석이면 true
+     * @return 오늘 첫 출석이면 true (이때 출석 XP 지급하면 됨)
      */
     public boolean recordAttendance() {
         LocalDate today = LocalDate.now();

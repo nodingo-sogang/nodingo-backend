@@ -29,8 +29,7 @@ public class QuizGenerationService {
 
     @Transactional
     public void generateAndSaveQuizzes(Long keywordId, String keywordSummary) {
-        Keyword keyword = keywordRepository.findById(keywordId)
-                .orElseThrow(() -> new KeywordNotFoundException("키워드를 찾을 수 없습니다."));
+        Keyword keyword = getKeywordOrElseThrow(keywordId);
 
         List<News> relatedNews = newsKeywordRepository.findNewsEntitiesByKeywordId(keywordId);
 
@@ -77,5 +76,10 @@ public class QuizGenerationService {
 
         quizRepository.saveAll(quizzes);
         log.info(">>>> [Quiz Gen] Successfully saved {} quizzes for Keyword: {}", quizzes.size(), keyword.getWord());
+    }
+
+    private Keyword getKeywordOrElseThrow(Long keywordId) {
+        return keywordRepository.findById(keywordId)
+                .orElseThrow(() -> new KeywordNotFoundException("키워드를 찾을 수 없습니다."));
     }
 }

@@ -36,6 +36,7 @@ public class RecommendKeywordScrapService {
 
         userScrapRepository.save(UserScrap.createRecommendKeywordScrap(user, rk));
 
+        user.addKeywordScrap();
         user.addXp(gamePolicy.getScrapXp());
 
         userVectorService.updateKeywordEmbeddingAsync(userId, keywordId);
@@ -45,6 +46,11 @@ public class RecommendKeywordScrapService {
         RecommendKeyword rk = getRk(userId, keywordId, "추천 정보를 찾을 수 없습니다.");
 
         UserScrap scrap = getScrap(userId, rk);
+
+        User user = getUser(userId);
+
+        user.removeKeywordScrap();
+        user.removeXp(gamePolicy.getScrapXp());
 
         userScrapRepository.delete(scrap);
     }

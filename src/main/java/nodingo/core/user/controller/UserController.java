@@ -23,6 +23,7 @@ import nodingo.core.user.dto.result.OnboardingStatusResult;
 import nodingo.core.user.dto.result.PersonaListResult;
 import nodingo.core.user.dto.result.UserProgressResult;
 import nodingo.core.user.service.async.OnboardingAsyncService;
+import nodingo.core.user.service.command.UserGameService;
 import nodingo.core.user.service.query.GameQueryService;
 import nodingo.core.user.service.query.OnboardingQueryService;
 import nodingo.core.user.service.command.OnboardingService;
@@ -43,6 +44,7 @@ public class UserController {
     private final OnboardingAsyncService onboardingAsyncService;
     private final OnboardingQueryService onboardingQueryService;
     private final UserProgressQueryService userProgressQueryService;
+    private final UserGameService userGameService;
     private final GameQueryService gameQueryService;
 
     @Operation(
@@ -121,8 +123,8 @@ public class UserController {
     }
 
     @Operation(
-            summary = "내 탐험 진행률 조회",
-            description = "전체 노드 대비 유저가 탐험한 노드의 비율 및 카운트를 조회합니다."
+            summary = "내 탐험 진행률 조회 (및 출석 체크)",
+            description = "전체 노드 대비 유저가 탐험한 노드의 비율을 조회합니다. 오늘 첫 호출 시 출석 보상이 지급됩니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "진행률 조회 성공"),
@@ -130,10 +132,12 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "유저 정보를 찾을 수 없음")
     })
     @RequireOnboardingCompleted
-    @GetMapping("/progress")
+    @GetMapping
     public ResponseEntity<ApiResponse<UserProgressResponse>> getMyProgress(
             @AuthenticationPrincipal CustomOAuth2User user) {
-        UserProgressResult result = userProgressQueryService.getMyProgress(user.getUser().getId());
+        Long userId = user.getUser().getId();
+        userGameService.checkAndRewardAttendance(userId);
+        UserProgressResult result = userProgressQueryService.getMyProgress(userId);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "진행률 조회 성공", UserProgressResponse.from(result)));
     }
 
