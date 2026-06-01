@@ -13,6 +13,7 @@ import nodingo.core.graph.dto.response.TabListResponse;
 import nodingo.core.graph.dto.result.GraphDataResult;
 import nodingo.core.graph.dto.result.NodeSummaryResult;
 import nodingo.core.graph.dto.result.TabListResult;
+import nodingo.core.graph.service.command.GraphService;
 import nodingo.core.graph.service.query.GraphQueryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/graphs")
 @RequiredArgsConstructor
 public class GraphController {
-
+    private final GraphService graphService;
     private final GraphQueryService graphQueryService;
 
     @Operation(
@@ -53,12 +54,13 @@ public class GraphController {
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
             @RequestParam(required = false) Long keywordId) {
         GraphDataResult result = graphQueryService.getGraphPreview(customOAuth2User.getUser().getId(), keywordId);
+
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 그래프 시각화 데이터를 조회했습니다.", GraphDataResponse.from(result)));
     }
 
     @Operation(
             summary = "특정 노드(소분류 키워드) 상세 요약 조회",
-            description = "그래프 내 노드 클릭 시 우측 패널에 표시될 상세 요약 정보를 조회합니다."
+            description = "그래프 내 노드 클릭 시 우측 패널(바텀시트)에 표시될 상세 요약 정보와 관련 뉴스 기사를 조회합니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공적으로 키워드 요약 정보를 조회했습니다."),
@@ -70,5 +72,21 @@ public class GraphController {
             @PathVariable Long nodeId) {
         NodeSummaryResult result = graphQueryService.getNodeSummary(customOAuth2User.getUser().getId(), nodeId);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 키워드 요약 정보를 조회했습니다.", NodeSummaryResponse.from(result)));
+    }
+
+    @Operation(
+            summary = "노드 탐험(클릭) 기록 저장",
+            description = "유저가 특정 노드를 처음 클릭했을 때 호출하여 탐험 상태를 저장하고 기본 탐험 경험치(+5 XP)를 부여합니다. (멱등성 보장)"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "노드 탐험 기록이 성공적으로 저장되었습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "해당 키워드를 찾을 수 없습니다.")
+    })
+    @PostMapping("/nodes/{keywordId}/explore")
+    public ResponseEntity<ApiResponse<Void>> exploreNode(
+            @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
+            @PathVariable Long keywordId) {
+        graphService.exploreNode(customOAuth2User.getUser().getId(), keywordId);
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "노드 탐험 기록이 성공적으로 저장되었습니다.", null));
     }
 }

@@ -1,6 +1,7 @@
 package nodingo.core.keyword.service.command;
 
 import lombok.RequiredArgsConstructor;
+import nodingo.core.user.utils.GamePolicy;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
 import nodingo.core.global.exception.scrap.DuplicateScrapException;
 import nodingo.core.global.exception.scrap.ScrapNotFoundException;
@@ -24,6 +25,7 @@ public class RecommendKeywordScrapService {
     private final UserRepository userRepository;
     private final RecommendKeywordRepository recommendKeywordRepository;
     private final UserVectorService userVectorService;
+    private final GamePolicy gamePolicy;
 
     public void addScrap(Long userId, Long keywordId) {
         RecommendKeyword rk = getRk(userId, keywordId, "해당 키워드 추천 정보를 찾을 수 없습니다.");
@@ -34,6 +36,9 @@ public class RecommendKeywordScrapService {
 
         userScrapRepository.save(UserScrap.createRecommendKeywordScrap(user, rk));
 
+        user.addKeywordScrap();
+        user.addXp(gamePolicy.getScrapXp());
+
         userVectorService.updateKeywordEmbeddingAsync(userId, keywordId);
     }
 
@@ -41,6 +46,11 @@ public class RecommendKeywordScrapService {
         RecommendKeyword rk = getRk(userId, keywordId, "추천 정보를 찾을 수 없습니다.");
 
         UserScrap scrap = getScrap(userId, rk);
+
+        User user = getUser(userId);
+
+        user.removeKeywordScrap();
+        user.removeXp(gamePolicy.getScrapXp());
 
         userScrapRepository.delete(scrap);
     }

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.news.domain.News;
 
+
 import java.util.List;
 
 public class UserEmbedding {

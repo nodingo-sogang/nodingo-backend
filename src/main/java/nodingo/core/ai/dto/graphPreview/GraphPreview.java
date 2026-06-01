@@ -79,6 +79,12 @@ public class GraphPreview {
 
         @JsonProperty("persona")
         private String persona;
+
+        @JsonProperty("unlock_level")
+        private Integer unlockLevel;
+
+        @JsonProperty("visibility")
+        private String visibility;
     }
 
     @Getter @Builder

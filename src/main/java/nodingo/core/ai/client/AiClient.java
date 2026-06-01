@@ -4,6 +4,7 @@ import nodingo.core.ai.dto.graphPreview.GraphPreview;
 import nodingo.core.ai.dto.keyword.KeywordRecommend;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
 import nodingo.core.ai.dto.newsBatch.NewsBatch;
+import nodingo.core.ai.dto.quiz.QuizGenerate;
 import nodingo.core.ai.dto.relation.NewsRelationAnalysis;
 import nodingo.core.ai.dto.userEmbedding.UserEmbedding;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -35,6 +36,9 @@ public interface AiClient {
 
     @PostMapping("/v1/graph/preview")
     GraphPreview.Response getGraphPreview(@RequestBody GraphPreview.Request request);
+
+    @PostMapping("/v1/quizzes/generate")
+    QuizGenerate.Response generateQuizzes(@RequestBody QuizGenerate.Request request);
 
     @GetMapping("/health")
     Map<String, Object> healthCheck();

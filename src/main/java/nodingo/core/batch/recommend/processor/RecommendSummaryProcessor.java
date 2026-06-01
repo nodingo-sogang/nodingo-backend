@@ -7,6 +7,8 @@ import nodingo.core.ai.dto.keyword.KeywordSummary;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.NewsKeywordRepository;
+import nodingo.core.quiz.repository.QuizRepository;
+import nodingo.core.quiz.service.command.QuizGenerationService;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +25,8 @@ public class RecommendSummaryProcessor {
 
     private final NewsKeywordRepository newsKeywordRepository;
     private final AiClient aiClient;
+    private final QuizGenerationService quizGenerationService;
+    private final QuizRepository quizRepository;
 
     @Bean
     @StepScope
@@ -75,6 +79,20 @@ public class RecommendSummaryProcessor {
             recommendKeyword.updateSummary(aiResponse.getSummary());
 
             log.info(">>>> [Batch-Processor] keyword '{}' AI briefing created successfully.", recommendKeyword.getKeyword().getWord());
+
+            //  8. 퀴즈 자동 생성
+            try {
+                Long keywordId = recommendKeyword.getKeyword().getId();
+
+                // 해당 키워드에 대한 퀴즈가 아직 DB에 없는 경우에만 AI에 생성 요청
+                if (!quizRepository.existsByKeywordId(keywordId)) {
+                    log.info(">>>> [Batch-Processor] Generating quizzes for keyword '{}'", recommendKeyword.getKeyword().getWord());
+                    quizGenerationService.generateAndSaveQuizzes(keywordId, aiResponse.getSummary());
+                }
+            } catch (Exception e) {
+                // 퀴즈 생성이 실패하더라도 전체 추천 요약 배치가 중단되지 않도록 방어
+                log.error(">>>> [Batch-Processor] Quiz generation failed for keyword '{}'", recommendKeyword.getKeyword().getWord(), e);
+            }
 
             return recommendKeyword;
         };

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface RecommendKeywordRepository extends JpaRepository<RecommendKeyword, Long>, RecommendKeywordRepositoryCustom {
 
@@ -19,4 +20,6 @@ public interface RecommendKeywordRepository extends JpaRepository<RecommendKeywo
     List<RecommendKeyword> findAllByUserId(Long userId);
 
     boolean existsByUserIdAndTargetDate(Long userId, LocalDate targetDate);
+
+    Optional<RecommendKeyword> findByUserIdAndKeywordIdAndTargetDate(Long userId, Long keywordId, LocalDate targetDate);
 }

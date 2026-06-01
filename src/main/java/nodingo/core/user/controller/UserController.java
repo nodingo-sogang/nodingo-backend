@@ -5,6 +5,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import nodingo.core.user.dto.response.GameProfileResponse;
+import nodingo.core.user.dto.result.GameProfileResult;
+import nodingo.core.global.annotation.RequireOnboardingCompleted;
 import nodingo.core.global.auth.CustomOAuth2User;
 import nodingo.core.global.dto.response.ApiResponse;
 import nodingo.core.user.domain.User;
@@ -14,12 +17,17 @@ import nodingo.core.user.dto.request.OnboardingRequest;
 import nodingo.core.user.dto.response.KeywordListResponse;
 import nodingo.core.user.dto.response.OnboardingStatusResponse;
 import nodingo.core.user.dto.response.PersonaListResponse;
+import nodingo.core.user.dto.response.UserProgressResponse;
 import nodingo.core.user.dto.result.KeywordListResult;
 import nodingo.core.user.dto.result.OnboardingStatusResult;
 import nodingo.core.user.dto.result.PersonaListResult;
+import nodingo.core.user.dto.result.UserProgressResult;
 import nodingo.core.user.service.async.OnboardingAsyncService;
+import nodingo.core.user.service.command.UserGameService;
+import nodingo.core.user.service.query.GameQueryService;
 import nodingo.core.user.service.query.OnboardingQueryService;
 import nodingo.core.user.service.command.OnboardingService;
+import nodingo.core.user.service.query.UserProgressQueryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,6 +43,9 @@ public class UserController {
     private final OnboardingService onboardingService;
     private final OnboardingAsyncService onboardingAsyncService;
     private final OnboardingQueryService onboardingQueryService;
+    private final UserProgressQueryService userProgressQueryService;
+    private final UserGameService userGameService;
+    private final GameQueryService gameQueryService;
 
     @Operation(
             summary = "대분류(Persona) 목록 조회",
@@ -109,5 +120,40 @@ public class UserController {
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
         OnboardingStatusResult result = onboardingQueryService.getOnboardingStatus(customOAuth2User.getUser().getId());
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 온보딩 상태를 조회했습니다.", OnboardingStatusResponse.from(result)));
+    }
+
+    @Operation(
+            summary = "내 탐험 진행률 조회 (및 출석 체크)",
+            description = "전체 노드 대비 유저가 탐험한 노드의 비율을 조회합니다. 오늘 첫 호출 시 출석 보상이 지급됩니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "진행률 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "온보딩 미완료 유저"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "유저 정보를 찾을 수 없음")
+    })
+    @RequireOnboardingCompleted
+    @GetMapping
+    public ResponseEntity<ApiResponse<UserProgressResponse>> getMyProgress(
+            @AuthenticationPrincipal CustomOAuth2User user) {
+        Long userId = user.getUser().getId();
+        userGameService.checkAndRewardAttendance(userId);
+        UserProgressResult result = userProgressQueryService.getMyProgress(userId);
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "진행률 조회 성공", UserProgressResponse.from(result)));
+    }
+
+    @Operation(
+            summary = "내 게임 프로필 조회",
+            description = "유저의 현재 레벨, XP, 티어 및 일일 미션 달성 현황을 조회합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "게임 프로필을 성공적으로 조회했습니다.")
+    })
+    @RequireOnboardingCompleted
+    @GetMapping("/game")
+    public ResponseEntity<ApiResponse<GameProfileResponse>> getMyGameProfile(
+            @AuthenticationPrincipal CustomOAuth2User user) {
+
+        GameProfileResult result = gameQueryService.getMyProfile(user.getUser().getId());
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "게임 프로필을 성공적으로 조회했습니다.", GameProfileResponse.from(result)));
     }
 }
