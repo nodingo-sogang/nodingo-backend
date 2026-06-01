@@ -68,6 +68,8 @@ jobs:
               --name $CONTAINER_NAME \
               -p 8080:8080 \
               --restart always \
+              --network ubuntu_default \
               $REGISTRY_URL/$ECR_REPOSITORY:latest
+              
             
             docker image prune -f
