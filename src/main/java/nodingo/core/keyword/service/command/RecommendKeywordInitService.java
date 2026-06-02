@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,12 +27,12 @@ public class RecommendKeywordInitService {
     private final KeywordRecommendQueryService queryService;
     private final KeywordRecommendService commandService;
     private final RecommendKeywordRepository recommendKeywordRepository;
-    private final NewsKeywordRepository newsKeywordRepository;  // 🔥 추가
-    private final AiClient aiClient;  // 🔥 추가
+    private final NewsKeywordRepository newsKeywordRepository;
+    private final AiClient aiClient;
 
     @Transactional
     public void initForNewUser(User user) {
-        LocalDate today = LocalDate.now(); // 🔥 그냥 오늘
+        LocalDate today = LocalDate.now();
 
         if (recommendKeywordRepository.existsByUserIdAndTargetDate(user.getId(), today)) {
             log.info(">>>> [Onboarding] Recommend keywords already exist, skipping. userId={}", user.getId());
@@ -70,7 +69,6 @@ public class RecommendKeywordInitService {
                         .collect(Collectors.toList());
 
                 KeywordSummary.Request aiRequest = KeywordSummary.Request.builder()
-                        .userId(user.getId())
                         .keyword(KeywordSummary.SummaryKeywordInput.builder()
                                 .keywordId(rk.getKeyword().getId())
                                 .word(rk.getKeyword().getWord())

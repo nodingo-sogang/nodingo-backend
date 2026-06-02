@@ -69,7 +69,6 @@ public class NeighborSummaryService {
                             .collect(Collectors.toList());
 
                     KeywordSummary.Request aiRequest = KeywordSummary.Request.builder()
-                            .userId(null)
                             .keyword(KeywordSummary.SummaryKeywordInput.builder()
                                     .keywordId(keyword.getId())
                                     .word(keyword.getWord())
