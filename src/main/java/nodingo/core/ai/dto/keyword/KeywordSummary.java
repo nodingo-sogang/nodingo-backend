@@ -14,8 +14,6 @@ public class KeywordSummary {
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class Request {
-        @JsonProperty("user_id")
-        private Long userId;
         @JsonProperty("keyword")
         private SummaryKeywordInput keyword;
         @JsonProperty("related_news")
@@ -33,8 +31,6 @@ public class KeywordSummary {
     @Getter @Builder
     @NoArgsConstructor @AllArgsConstructor
     public static class Response {
-        @JsonProperty("user_id")
-        private Long userId;
         @JsonProperty("keyword_id")
         private Long keywordId;
         @JsonProperty("target_date")
