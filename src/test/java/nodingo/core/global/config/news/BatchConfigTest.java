@@ -62,9 +62,10 @@ class BatchConfigTest {
 
     @Mock private JobRepository jobRepository;
     @Mock private PlatformTransactionManager transactionManager;
-    @Mock private ResourcelessTransactionManager noDbTransactionManager; // ✅ 추가
+    @Mock private ResourcelessTransactionManager noDbTransactionManager;
     @Mock private MyJobListener myJobListener;
     @Mock private Tasklet relationTasklet;
+    @Mock private Tasklet neighborKeywordQuizTasklet; // 추가
 
     @Mock private ItemReader<NewsApiItem> newsApiReader;
     @Mock private ItemProcessor<NewsApiItem, News> newsProcessor;
@@ -98,7 +99,7 @@ class BatchConfigTest {
                 newsApiReader,
                 newsProcessor,
                 newsAiWriter,
-                noDbTransactionManager  // ✅ 추가
+                noDbTransactionManager
         );
 
         Step relationStep = config.relationStep(
@@ -120,6 +121,11 @@ class BatchConfigTest {
                 transactionManager
         );
 
+        Step neighborKeywordQuizStep = config.neighborKeywordQuizStep(
+                neighborKeywordQuizTasklet,
+                transactionManager
+        );
+
         Step notificationStep = config.notificationStep(
                 notificationReader,
                 notificationProcessor,
@@ -131,7 +137,8 @@ class BatchConfigTest {
                 newsStep,
                 relationStep,
                 recommendStep,
-                summaryStep
+                summaryStep,
+                neighborKeywordQuizStep
         );
 
         Job hourlyJob = config.hourlyNotificationJob(notificationStep);
@@ -146,7 +153,8 @@ class BatchConfigTest {
                         "newsStep",
                         "relationStep",
                         "recommendStep",
-                        "recommendSummaryStep"
+                        "recommendSummaryStep",
+                        "neighborKeywordQuizStep"
                 );
 
         assertThat(hourlyJob.getName()).isEqualTo("hourlyNotificationJob");

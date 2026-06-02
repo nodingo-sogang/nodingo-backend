@@ -1,8 +1,12 @@
 package nodingo.core.keyword.repository.impl;
 
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import nodingo.core.keyword.domain.Keyword;
+import nodingo.core.keyword.domain.QKeyword;
+import nodingo.core.keyword.domain.QKeywordRelation;
+import nodingo.core.keyword.domain.QNewsKeyword;
 import nodingo.core.keyword.dto.query.KeywordCandidate;
 import nodingo.core.keyword.dto.query.QKeywordCandidate;
 import nodingo.core.keyword.repository.custom.KeywordRepositoryCustom;
@@ -88,6 +92,27 @@ public class KeywordRepositoryImpl implements KeywordRepositoryCustom {
                         keyword.targetDate.eq(targetDate)
                 )
                 .limit(limit)
+                .fetch();
+    }
+
+    @Override
+    public List<Keyword> findNeighborKeywordsWithNews(LocalDate targetDate) {
+        QKeyword keyword = QKeyword.keyword;
+        QNewsKeyword newsKeyword = QNewsKeyword.newsKeyword;
+        QKeywordRelation keywordRelation = QKeywordRelation.keywordRelation;
+
+        return queryFactory
+                .selectDistinct(keyword)
+                .from(keyword)
+                .join(newsKeyword).on(newsKeyword.keyword.id.eq(keyword.id))
+                .where(
+                        keyword.targetDate.eq(targetDate),
+                        JPAExpressions.selectOne()
+                                .from(keywordRelation)
+                                .where(keywordRelation.subjectKeyword.id.eq(keyword.id)
+                                        .or(keywordRelation.relatedKeyword.id.eq(keyword.id)))
+                                .exists()
+                )
                 .fetch();
     }
 }
