@@ -19,6 +19,8 @@ import nodingo.core.graph.dto.NewsItemBrief;
 import nodingo.core.user.repository.UserInterestRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -148,16 +150,16 @@ public class GraphQueryService {
                 .toList();
     }
 
-    public NodeSummaryResult getNodeSummary(Long userId, Long nodeId) {
+    public NodeSummaryResult getNodeSummary(Long userId, Long nodeId, Pageable pageable) {
         LocalDate targetDate = getTargetDate();
 
         RecommendKeyword recommendKeyword = recommendKeywordRepository
                 .findByUserIdAndKeywordIdAndTargetDate(userId, nodeId, targetDate)
                 .orElseThrow(() -> new IllegalArgumentException("해당 키워드에 대한 요약 정보를 찾을 수 없습니다."));
 
-        List<News> relatedNews = newsKeywordRepository.findNewsEntitiesByKeywordId(nodeId);
+        Slice<News> relatedNewsSlice = newsKeywordRepository.findNewsSliceByKeywordId(nodeId, pageable);
 
-        List<NewsItemBrief> newsBriefs = relatedNews.stream()
+        List<NewsItemBrief> newsBriefs = relatedNewsSlice.getContent().stream()
                 .map(news -> {
                     String safeSnippet = news.getBody();
                     if (safeSnippet != null && safeSnippet.length() > 100) {
@@ -174,7 +176,7 @@ public class GraphQueryService {
                 })
                 .toList();
 
-        return NodeSummaryResult.from(recommendKeyword, newsBriefs);
+        return NodeSummaryResult.from(recommendKeyword, newsBriefs, relatedNewsSlice.hasNext());
     }
 
     private static List<TabResult> getTabResults(List<RecommendKeyword> recommendKeywords) {
