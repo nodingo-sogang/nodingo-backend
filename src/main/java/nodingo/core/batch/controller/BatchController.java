@@ -19,6 +19,22 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher; // 🌟 추가됨
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+
 @Slf4j
 @Tag(name = "Admin - Batch", description = "관리자용 배치 실행 API")
 @RestController
@@ -26,8 +42,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class BatchController {
 
-    private final NewsScheduler newsScheduler;
-    private final NotificationScheduler notificationScheduler;
+    private final JobLauncher jobLauncher;
+    private final Job dailyNewsJob;
+    private final Job hourlyNotificationJob;
     private final NewsBatchQueryService newsBatchQueryService;
 
     @Operation(
@@ -41,8 +58,13 @@ public class BatchController {
     @PostMapping("/news-collect")
     public ResponseEntity<ApiResponse<Void>> triggerNewsJob() {
         try {
-            newsScheduler.runDailyNewsJob();
-            return ResponseEntity.ok(new ApiResponse<>(true, 200, "뉴스 수집 배치가 성공적으로 트리거되었습니다.", null));
+            JobParameters jobParameters = new JobParametersBuilder()
+                    .addLocalDateTime("requestTime", LocalDateTime.now())
+                    .toJobParameters();
+
+            jobLauncher.run(dailyNewsJob, jobParameters);
+
+            return ResponseEntity.ok(new ApiResponse<>(true, 200, "뉴스 수집 배치(병렬 최적화 버전)가 성공적으로 트리거되었습니다.", null));
         } catch (Exception e) {
             log.error("News Batch Trigger Error: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -80,7 +102,11 @@ public class BatchController {
     @PostMapping("/notification-push")
     public ResponseEntity<ApiResponse<Void>> triggerNotificationJob() {
         try {
-            notificationScheduler.runHourlyNotificationBatch();
+            JobParameters jobParameters = new JobParametersBuilder()
+                    .addLocalDateTime("requestTime", LocalDateTime.now())
+                    .toJobParameters();
+
+            jobLauncher.run(hourlyNotificationJob, jobParameters);
             return ResponseEntity.ok(new ApiResponse<>(true, 200, "알림 발송 배치가 성공적으로 트리거되었습니다.", null));
         } catch (Exception e) {
             log.error("Notification Batch Trigger Error: ", e);
