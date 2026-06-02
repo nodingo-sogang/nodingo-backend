@@ -13,10 +13,12 @@ import nodingo.core.keyword.service.query.KeywordRecommendQueryService;
 import nodingo.core.user.domain.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,6 +31,7 @@ public class RecommendKeywordInitService {
     private final RecommendKeywordRepository recommendKeywordRepository;
     private final NewsKeywordRepository newsKeywordRepository;
     private final AiClient aiClient;
+    private final ThreadPoolTaskExecutor onboardingExecutor;
 
     @Transactional
     public void initForNewUser(User user) {
@@ -46,48 +49,56 @@ public class RecommendKeywordInitService {
             return;
         }
 
-        // 1. 추천 키워드 생성
         List<RecommendKeyword> recommendations = commandService.generateRecommendationForUser(user, candidates, today);
 
-        // 2. 🔥 각 키워드 summarize
-        for (RecommendKeyword rk : recommendations) {
-            try {
-                List<NewsKeyword> topNewsKeywords = newsKeywordRepository.findTopByKeywordId(
-                        rk.getKeyword().getId(), 3);
+        log.info(">>>> [Onboarding] 추천 키워드 요약 병렬 가동 - 대상 개수: {}", recommendations.size());
 
-                if (topNewsKeywords.isEmpty()) {
-                    rk.updateSummary("관련 뉴스가 부족하여 요약할 수 없습니다.");
-                    continue;
-                }
+        List<CompletableFuture<Void>> futures = recommendations.stream()
+                .map(rk -> {
+                    List<NewsKeyword> topNewsKeywords = newsKeywordRepository.findTopByKeywordId(
+                            rk.getKeyword().getId(), 3);
 
-                List<KeywordSummary.SummaryNewsInput> newsInputs = topNewsKeywords.stream()
-                        .map(nk -> KeywordSummary.SummaryNewsInput.builder()
-                                .newsId(nk.getNews().getId())
-                                .title(nk.getNews().getTitle())
-                                .body(nk.getNews().getBody())
-                                .build())
-                        .collect(Collectors.toList());
+                    if (topNewsKeywords.isEmpty()) {
+                        rk.updateSummary("관련 뉴스가 부족하여 요약할 수 없습니다.");
+                        return CompletableFuture.completedFuture((Void) null); // 즉시 완료된 DTO 반환 (스킵)
+                    }
 
-                KeywordSummary.Request aiRequest = KeywordSummary.Request.builder()
-                        .keyword(KeywordSummary.SummaryKeywordInput.builder()
-                                .keywordId(rk.getKeyword().getId())
-                                .word(rk.getKeyword().getWord())
-                                .build())
-                        .relatedNews(newsInputs)
-                        .relatedKeywords(Collections.emptyList())
-                        .targetDate(today)
-                        .build();
+                    List<KeywordSummary.SummaryNewsInput> newsInputs = topNewsKeywords.stream()
+                            .map(nk -> KeywordSummary.SummaryNewsInput.builder()
+                                    .newsId(nk.getNews().getId())
+                                    .title(nk.getNews().getTitle())
+                                    .body(nk.getNews().getBody())
+                                    .build())
+                            .collect(Collectors.toList());
 
-                KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
-                rk.updateSummary(aiResponse.getSummary());
+                    KeywordSummary.Request aiRequest = KeywordSummary.Request.builder()
+                            .keyword(KeywordSummary.SummaryKeywordInput.builder()
+                                    .keywordId(rk.getKeyword().getId())
+                                    .word(rk.getKeyword().getWord())
+                                    .build())
+                            .relatedNews(newsInputs)
+                            .relatedKeywords(Collections.emptyList())
+                            .targetDate(today)
+                            .build();
 
-                log.info(">>>> [Onboarding] Summary created for keyword: {}", rk.getKeyword().getWord());
+                    return CompletableFuture.runAsync(() -> {
+                        try {
+                            KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
+                            rk.updateSummary(aiResponse.getSummary());
 
-            } catch (Exception e) {
-                log.warn(">>>> [Onboarding] Summary failed for keyword: {}, error: {}",
-                        rk.getKeyword().getWord(), e.getMessage());
-            }
-        }
+                            log.info(">>>> [Onboarding] Summary created for keyword: {} (Thread: {})",
+                                    rk.getKeyword().getWord(), Thread.currentThread().getName());
+
+                        } catch (Exception e) {
+                            log.warn(">>>> [Onboarding] Summary failed for keyword: {}, error: {}",
+                                    rk.getKeyword().getWord(), e.getMessage());
+                            rk.updateSummary("요약 생성 중 오류가 발생했습니다.");
+                        }
+                    }, onboardingExecutor);
+                })
+                .toList();
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
         recommendKeywordRepository.saveAll(recommendations);
 

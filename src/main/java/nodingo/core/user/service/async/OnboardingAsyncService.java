@@ -38,23 +38,18 @@ public class OnboardingAsyncService {
                     .orElseThrow(() -> new UserNotFoundException("User not found. userId=" + userId));
             List<Keyword> keywords = keywordRepository.findAllById(keywordIds);
 
-            // 1. 유저 임베딩 초기화
             userVectorService.initUserEmbedding(user, keywords);
 
-            // 2. 추천 키워드 초기화
             recommendKeywordInitService.initForNewUser(user);
 
-            // 3. 🌟 [대형 최적화] 기존 for 루프를 깨부수고 CompletableFuture를 통한 동시 병렬 처리 가동!
             List<CompletableFuture<Void>> futures = keywordIds.stream()
                     .map(keywordId -> CompletableFuture.runAsync(() -> {
-                        // 각 스레드가 키워드를 하나씩 나눠 잡고 파이썬 서버를 동시에 찌릅니다.
                         quizGenerationService.generateForOnboarding(keywordId, userId);
                     }, onboardingExecutor))
                     .toList();
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-            // 4. 최종 온보딩 완료 상태 세팅
             user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
             userRepository.save(user);
             log.info(">>>> [OnboardingAsync] Onboarding initialization completed. userId={}", userId);
