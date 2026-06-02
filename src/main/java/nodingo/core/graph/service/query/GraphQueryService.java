@@ -6,6 +6,7 @@ import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.graphPreview.GraphPreview;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
 import nodingo.core.graph.dto.result.*;
+import nodingo.core.graph.service.command.NeighborSummaryService;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.KeywordRelation;
 import nodingo.core.keyword.domain.RecommendKeyword;
@@ -40,6 +41,7 @@ public class GraphQueryService {
     private final UserKeywordExploreRepository exploreRepository;
     private final UserInterestRepository interestRepository;
     private final NewsKeywordRepository newsKeywordRepository;
+    private final NeighborSummaryService neighborSummaryService;
 
     public TabListResult getTodayTabs(Long userId) {
         LocalDate targetDate = getTargetDate();
@@ -87,6 +89,21 @@ public class GraphQueryService {
 
         GraphPreview.Response filteredResponse = filterUnknownNodes(aiResponse);
 
+        // summary 없는 edge 노드들 동기로 summary 생성
+        List<Long> emptySummaryNodeIds = filteredResponse.getNodes().stream()
+                .filter(node -> node.getSummary() == null || node.getSummary().isBlank())
+                .map(GraphPreview.GraphNode::getId)
+                .toList();
+
+        Map<Long, String> generatedSummaries = new HashMap<>();
+        if (!emptySummaryNodeIds.isEmpty()) {
+            generatedSummaries = neighborSummaryService.generateSummarySync(emptySummaryNodeIds);
+            // 퀴즈는 비동기로
+            neighborSummaryService.generateQuizAsync(emptySummaryNodeIds, generatedSummaries);
+            // 응답에 summary 반영
+            filteredResponse = injectSummaries(filteredResponse, generatedSummaries);
+        }
+
         List<Long> nodeIds = filteredResponse.getNodes().stream()
                 .map(GraphPreview.GraphNode::getId)
                 .toList();
@@ -96,6 +113,31 @@ public class GraphQueryService {
         Map<Long, Integer> newsCountMap = newsKeywordRepository.countNewsByKeywordIds(nodeIds);
 
         return buildGraphDataResult(filteredResponse, exploredIds, scrappedIds, newsCountMap);
+    }
+
+    private GraphPreview.Response injectSummaries(GraphPreview.Response response, Map<Long, String> summaryMap) {
+        List<GraphPreview.GraphNode> updatedNodes = response.getNodes().stream()
+                .map(node -> {
+                    String summary = summaryMap.get(node.getId());
+                    if (summary != null) {
+                        return GraphPreview.GraphNode.builder()
+                                .id(node.getId())
+                                .label(node.getLabel())
+                                .score(node.getScore())
+                                .summary(summary)
+                                .persona(node.getPersona())
+                                .unlockLevel(node.getUnlockLevel())
+                                .visibility(node.getVisibility())
+                                .build();
+                    }
+                    return node;
+                })
+                .toList();
+
+        return GraphPreview.Response.builder()
+                .nodes(updatedNodes)
+                .edges(response.getEdges())
+                .build();
     }
 
     private static List<Long> getTopTabIds(Map<Long, RecommendKeyword> recommendMap) {
@@ -121,7 +163,6 @@ public class GraphQueryService {
                     if (safeSnippet != null && safeSnippet.length() > 100) {
                         safeSnippet = safeSnippet.substring(0, 100) + "...";
                     }
-
                     return NewsItemBrief.builder()
                             .id(news.getId())
                             .title(news.getTitle())

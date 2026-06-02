@@ -41,13 +41,14 @@ public class BatchConfig {
     private final MyJobListener myJobListener;
 
     @Bean
-    public Job dailyNewsJob(Step newsStep, Step relationStep, Step recommendStep, Step recommendSummaryStep) {
+    public Job dailyNewsJob(Step newsStep, Step relationStep, Step recommendStep, Step recommendSummaryStep, Step neighborKeywordQuizStep) {
         return new JobBuilder("dailyNewsJob", jobRepository)
                 .listener(myJobListener)
                 .start(newsStep)
                 .next(relationStep)
                 .next(recommendStep)
                 .next(recommendSummaryStep)
+                .next(neighborKeywordQuizStep)
                 .build();
     }
 
@@ -120,6 +121,14 @@ public class BatchConfig {
                 .reader(notificationReader)
                 .processor(notificationProcessor)
                 .writer(fcmBatchWriter)
+                .build();
+    }
+
+    @Bean
+    public Step neighborKeywordQuizStep(Tasklet neighborKeywordQuizTasklet,
+                                        PlatformTransactionManager transactionManager) {
+        return new StepBuilder("neighborKeywordQuizStep", jobRepository)
+                .tasklet(neighborKeywordQuizTasklet, transactionManager)
                 .build();
     }
 }

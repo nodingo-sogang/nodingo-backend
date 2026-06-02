@@ -14,4 +14,5 @@ public interface KeywordRepositoryCustom {
     List<Keyword> findSpecificsByDate(Collection<String> normalizedWords, LocalDate targetDate);
     List<Keyword> findMacrosForOnboarding(UserPersona persona, LocalDate targetDate, int limit);
     List<Keyword> findSpecificsForOnboarding(Long macroId, LocalDate targetDate, int limit);
+    List<Keyword> findNeighborKeywordsWithNews(LocalDate targetDate);
 }

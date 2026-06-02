@@ -1,9 +1,12 @@
 package nodingo.core.batch.listener;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -11,7 +14,10 @@ import java.util.Optional;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class MyJobListener implements JobExecutionListener {
+
+    private final CacheManager cacheManager;
 
     @Override
     public void beforeJob(JobExecution jobExecution) {
@@ -50,6 +56,16 @@ public class MyJobListener implements JobExecutionListener {
             jobExecution.getAllFailureExceptions().forEach(e ->
                     log.error(">>>> [ERROR] {} : {}", e.getClass().getSimpleName(), e.getMessage())
             );
+        }
+
+        // 배치 완료 시 그래프 캐시 전체 삭제
+        if (jobExecution.getStatus() == BatchStatus.COMPLETED
+                && "dailyNewsJob".equals(jobExecution.getJobInstance().getJobName())) {
+            Cache graphCache = cacheManager.getCache("batch:graph");
+            if (graphCache != null) {
+                graphCache.clear();
+                log.info(">>>> [Cache] batch:graph 캐시 전체 삭제 완료");
+            }
         }
 
         log.info(">>>> End Time : {}", jobExecution.getEndTime());

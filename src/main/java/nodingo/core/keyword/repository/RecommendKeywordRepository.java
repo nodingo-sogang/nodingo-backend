@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 public interface RecommendKeywordRepository extends JpaRepository<RecommendKeyword, Long>, RecommendKeywordRepositoryCustom {
@@ -17,9 +16,9 @@ public interface RecommendKeywordRepository extends JpaRepository<RecommendKeywo
     @Query("DELETE FROM RecommendKeyword r WHERE r.user.id = :userId AND r.targetDate = :targetDate")
     void deleteByUserIdAndTargetDate(@Param("userId") Long userId, @Param("targetDate") LocalDate targetDate);
 
-    List<RecommendKeyword> findAllByUserId(Long userId);
-
     boolean existsByUserIdAndTargetDate(Long userId, LocalDate targetDate);
+
+    Optional<RecommendKeyword> findByKeywordIdAndTargetDate(Long keywordId, LocalDate targetDate);
 
     Optional<RecommendKeyword> findByUserIdAndKeywordIdAndTargetDate(Long userId, Long keywordId, LocalDate targetDate);
 }
