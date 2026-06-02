@@ -223,7 +223,7 @@ public class GraphQueryService {
                             .keywordId(id)
                             .word(rk != null ? rk.getKeyword().getWord()
                                     : fallback != null ? fallback.getWord() : "Unknown")
-                            .score(rk != null ? rk.getScore() : 0.0)
+                            .score(rk != null ? rk.getScore() : 0.45)
                             .summary(rk != null ? rk.getSummary() : "")
                             .persona(rk != null && rk.getKeyword().getPersona() != null
                                     ? rk.getKeyword().getPersona().name()

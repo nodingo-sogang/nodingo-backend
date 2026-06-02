@@ -179,9 +179,11 @@ public class NewsAiWriter implements ItemWriter<News> {
         newsRepository.saveAll(savedNews);
         log.info(">>>> [Batch Writer] Finished analyzing and summarizing {} news articles.", savedNews.size());
 
-        // 8. 키워드 관계 저장 (normalized_word 기반으로 자바에서 직접 매핑)
-        // 파이썬 keyword_id가 null인 경우에도 specificCache에서 직접 찾아서 저장
+        // 8. 키워드 관계 저장 (upsert + 로그)
         if (aiResponse.getKeywordRelations() != null && !aiResponse.getKeywordRelations().isEmpty()) {
+            int skippedNullNormalizedCount = 0;
+            int skippedKeywordNotFoundCount = 0;
+            int duplicateRelationCount = 0;
             List<KeywordRelation> relationsToSave = new ArrayList<>();
 
             for (NewsBatch.KeywordRelationResult relRes : aiResponse.getKeywordRelations()) {
@@ -189,7 +191,7 @@ public class NewsAiWriter implements ItemWriter<News> {
                 String relatedNorm = relRes.getRelatedNormalizedWord();
 
                 if (subjectNorm == null || relatedNorm == null) {
-                    log.warn(">>>> [Batch Writer] Skipping relation with null normalized_word: subject={}, related={}", subjectNorm, relatedNorm);
+                    skippedNullNormalizedCount++;
                     continue;
                 }
 
@@ -197,21 +199,38 @@ public class NewsAiWriter implements ItemWriter<News> {
                 Keyword target = specificCache.get(relatedNorm);
 
                 if (source == null || target == null) {
-                    log.warn(">>>> [Batch Writer] Skipping relation: keyword not found in cache. subject={}, related={}", subjectNorm, relatedNorm);
+                    skippedKeywordNotFoundCount++;
                     continue;
                 }
 
                 if (source.getId().equals(target.getId())) continue;
 
-                relationsToSave.add(KeywordRelation.create(source, target, relRes.getRelationScore()));
+                // create()와 동일하게 id 순서 정렬 후 findByPair 호출
+                Long subjectId = source.getId() < target.getId() ? source.getId() : target.getId();
+                Long relatedId = source.getId() < target.getId() ? target.getId() : source.getId();
+
+                Optional<KeywordRelation> existing =
+                        keywordRelationRepository.findByPair(subjectId, relatedId);
+
+                if (existing.isPresent()) {
+                    existing.get().updateRelation(relRes.getRelationScore());
+                    keywordRelationRepository.save(existing.get());
+                    duplicateRelationCount++;
+                } else {
+                    relationsToSave.add(KeywordRelation.create(source, target, relRes.getRelationScore()));
+                }
             }
 
             if (!relationsToSave.isEmpty()) {
                 keywordRelationRepository.saveAll(relationsToSave);
-                log.info(">>>> [Batch Writer] Successfully saved {} keyword relations.", relationsToSave.size());
-            } else {
-                log.warn(">>>> [Batch Writer] No keyword relations to save. (relations from AI: {})", aiResponse.getKeywordRelations().size());
             }
+
+            log.info(">>>> [Batch Writer] KeywordRelation stats | AI total: {} | toSave: {} | skippedNullNorm: {} | skippedNotFound: {} | duplicateUpdated: {}",
+                    aiResponse.getKeywordRelations().size(),
+                    relationsToSave.size(),
+                    skippedNullNormalizedCount,
+                    skippedKeywordNotFoundCount,
+                    duplicateRelationCount);
         }
     }
 }

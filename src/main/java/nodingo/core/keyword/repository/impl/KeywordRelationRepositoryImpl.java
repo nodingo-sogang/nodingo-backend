@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 
 import java.util.List;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 public class KeywordRelationRepositoryImpl implements KeywordRelationRepositoryCustom {
@@ -46,5 +47,20 @@ public class KeywordRelationRepositoryImpl implements KeywordRelationRepositoryC
                 )
                 .orderBy(kr.relationScore.desc())
                 .fetch();
+    }
+
+    @Override
+    public Optional<KeywordRelation> findByPair(Long subjectId, Long relatedId) {
+        QKeywordRelation kr = QKeywordRelation.keywordRelation;
+
+        return Optional.ofNullable(
+                queryFactory
+                        .selectFrom(kr)
+                        .where(
+                                kr.subjectKeyword.id.eq(subjectId)
+                                        .and(kr.relatedKeyword.id.eq(relatedId))
+                        )
+                        .fetchOne()
+        );
     }
 }
