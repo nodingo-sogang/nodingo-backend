@@ -14,12 +14,14 @@ import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,60 +35,68 @@ public class NeighborKeywordQuizTasklet implements Tasklet {
     private final AiClient aiClient;
     private final NewsKeywordRepository newsKeywordRepository;
 
+    private final ThreadPoolTaskExecutor batchQuizExecutor;
+
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
         LocalDate targetDate = LocalTime.now().isBefore(LocalTime.of(5, 0))
                 ? LocalDate.now().minusDays(1)
                 : LocalDate.now();
 
-        // 오늘 날짜 키워드 중 뉴스 있고 관계 있는 것들 조회
         List<Keyword> neighborKeywords = keywordRepository.findNeighborKeywordsWithNews(targetDate);
+        log.info(">>>> [NeighborQuiz] 병렬 처리 엔진 가동 - 총 이웃 키워드 개수: {}", neighborKeywords.size());
 
-        log.info(">>>> [NeighborQuiz] Total neighbor keywords to process: {}", neighborKeywords.size());
-
-        for (Keyword keyword : neighborKeywords) {
-            try {
-                // 퀴즈 이미 있으면 스킵
-                if (quizRepository.existsByKeywordId(keyword.getId())) {
-                    continue;
-                }
-
-                // summary 생성
-                List<NewsKeyword> topNewsKeywords = newsKeywordRepository.findTopByKeywordId(keyword.getId(), 3);
-                if (topNewsKeywords.isEmpty()) continue;
-
-                List<KeywordSummary.SummaryNewsInput> newsInputs = topNewsKeywords.stream()
-                        .map(nk -> KeywordSummary.SummaryNewsInput.builder()
-                                .newsId(nk.getNews().getId())
-                                .title(nk.getNews().getTitle())
-                                .body(nk.getNews().getBody())
-                                .build())
-                        .collect(Collectors.toList());
-
-                KeywordSummary.Request aiRequest = KeywordSummary.Request.builder()
-                        .keyword(KeywordSummary.SummaryKeywordInput.builder()
-                                .keywordId(keyword.getId())
-                                .word(keyword.getWord())
-                                .build())
-                        .relatedNews(newsInputs)
-                        .relatedKeywords(Collections.emptyList())
-                        .targetDate(targetDate)
-                        .persona(keyword.getPersona() != null ? keyword.getPersona().name() : null)
-                        .category(keyword.getParent() != null ? keyword.getParent().getWord() : null)
-                        .build();
-
-                KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
-                String summary = aiResponse.getSummary();
-
-                // 퀴즈 생성
-                quizGenerationService.generateAndSaveQuizzes(keyword.getId(), summary);
-                log.info(">>>> [NeighborQuiz] Generated quizzes for keyword: {}", keyword.getWord());
-
-            } catch (Exception e) {
-                log.error(">>>> [NeighborQuiz] Failed for keyword: {}", keyword.getWord(), e);
-            }
+        if (neighborKeywords.isEmpty()) {
+            return RepeatStatus.FINISHED;
         }
 
+        List<CompletableFuture<Void>> futures = neighborKeywords.stream()
+                .map(keyword -> CompletableFuture.runAsync(() -> {
+                    try {
+                        if (quizRepository.existsByKeywordId(keyword.getId())) {
+                            return;
+                        }
+
+                        List<NewsKeyword> topNewsKeywords = newsKeywordRepository.findTopByKeywordId(keyword.getId(), 3);
+                        if (topNewsKeywords.isEmpty()) return;
+
+                        List<KeywordSummary.SummaryNewsInput> newsInputs = topNewsKeywords.stream()
+                                .map(nk -> KeywordSummary.SummaryNewsInput.builder()
+                                        .newsId(nk.getNews().getId())
+                                        .title(nk.getNews().getTitle())
+                                        .body(nk.getNews().getBody())
+                                        .build())
+                                .collect(Collectors.toList());
+
+                        KeywordSummary.Request aiRequest = KeywordSummary.Request.builder()
+                                .keyword(KeywordSummary.SummaryKeywordInput.builder()
+                                        .keywordId(keyword.getId())
+                                        .word(keyword.getWord())
+                                        .build())
+                                .relatedNews(newsInputs)
+                                .relatedKeywords(Collections.emptyList())
+                                .targetDate(targetDate)
+                                .persona(keyword.getPersona() != null ? keyword.getPersona().name() : null)
+                                .category(keyword.getParent() != null ? keyword.getParent().getWord() : null)
+                                .build();
+
+                        KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
+                        String summary = aiResponse.getSummary();
+
+                        quizGenerationService.generateAndSaveQuizzes(keyword.getId(), summary);
+
+                        log.info(">>>> [NeighborQuiz] 퀴즈 생성 완료! Keyword: '{}' (Thread: {})",
+                                keyword.getWord(), Thread.currentThread().getName());
+
+                    } catch (Exception e) {
+                        log.error(">>>> [NeighborQuiz] 키워드 처리 중 예외 발생. Keyword: {}", keyword.getWord(), e);
+                    }
+                }, batchQuizExecutor))
+                .toList();
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        log.info(">>>> [NeighborQuiz] 모든 이웃 키워드 퀴즈 생성 병렬 처리 완료!");
         return RepeatStatus.FINISHED;
     }
 }

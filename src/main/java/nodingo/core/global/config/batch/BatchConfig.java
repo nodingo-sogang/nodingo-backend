@@ -25,7 +25,6 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor; // 🌟 임포트 추가 완료!
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -104,7 +103,6 @@ public class BatchConfig {
                 .build();
     }
 
-    // 🌟 대형 최적화가 적용된 추천 요약 스텝
     @Bean
     public Step recommendSummaryStep(ItemReader<RecommendKeyword> recommendSummaryItemReader,
                                      ItemProcessor<RecommendKeyword, RecommendKeyword> recommendSummaryItemProcessor,
