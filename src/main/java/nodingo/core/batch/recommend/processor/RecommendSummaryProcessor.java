@@ -65,7 +65,6 @@ public class RecommendSummaryProcessor {
 
             // 5. 최종 Request DTO 조립
             KeywordSummary.Request aiRequest = KeywordSummary.Request.builder()
-                    .userId(recommendKeyword.getUser().getId())
                     .keyword(keywordInput)
                     .relatedNews(newsInputs)
                     .relatedKeywords(Collections.emptyList())
