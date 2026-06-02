@@ -33,6 +33,9 @@ public class RecommendSummaryReader {
                 .queryString("SELECT r FROM RecommendKeyword r WHERE r.targetDate = :targetDate")
                 .parameterValues(Map.of("targetDate", targetDate))
                 .pageSize(100)
+
+                .saveState(false)
+
                 .build();
     }
 }

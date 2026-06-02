@@ -16,6 +16,8 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.ItemStreamReader;
+import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
 import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
@@ -24,6 +26,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor; // 🌟 임포트 추가 완료!
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
@@ -39,6 +42,9 @@ public class BatchConfig {
 
     private final JobRepository jobRepository;
     private final MyJobListener myJobListener;
+
+    // 🌟 Executor 대신 AsyncConfig와 100% 일치하는 ThreadPoolTaskExecutor 타입으로 명확히 변경!
+    private final ThreadPoolTaskExecutor batchQuizExecutor;
 
     @Bean
     public Job dailyNewsJob(Step newsStep, Step relationStep, Step recommendStep, Step recommendSummaryStep, Step neighborKeywordQuizStep) {
@@ -65,7 +71,7 @@ public class BatchConfig {
                          ItemWriter<News> newsAiWriter,
                          @Qualifier("noDbTransactionManager") ResourcelessTransactionManager noDbTransactionManager) {
         return new StepBuilder("newsStep", jobRepository)
-                .<NewsApiItem, News>chunk(NEWS_CHUNK_SIZE, noDbTransactionManager)  // ✅ 직접 호출 말고 파라미터로
+                .<NewsApiItem, News>chunk(NEWS_CHUNK_SIZE, noDbTransactionManager)
                 .reader(newsApiReader)
                 .processor(newsProcessor)
                 .writer(newsAiWriter)
@@ -79,7 +85,7 @@ public class BatchConfig {
 
     @Bean
     public Step relationStep(Tasklet newsRelationTasklet,
-                             PlatformTransactionManager transactionManager) {  // ✅ 생성자 말고 파라미터로
+                             PlatformTransactionManager transactionManager) {
         return new StepBuilder("relationStep", jobRepository)
                 .tasklet(newsRelationTasklet, transactionManager)
                 .build();
@@ -89,7 +95,7 @@ public class BatchConfig {
     public Step recommendStep(ItemReader<User> userReader,
                               ItemProcessor<User, List<RecommendKeyword>> recommendProcessor,
                               ItemWriter<List<RecommendKeyword>> recommendWriter,
-                              PlatformTransactionManager transactionManager) {  // ✅ 파라미터로
+                              PlatformTransactionManager transactionManager) {
         return new StepBuilder("recommendStep", jobRepository)
                 .<User, List<RecommendKeyword>>chunk(USER_CHUNK_SIZE, transactionManager)
                 .reader(userReader)
@@ -98,16 +104,24 @@ public class BatchConfig {
                 .build();
     }
 
+    // 🌟 대형 최적화가 적용된 추천 요약 스텝
     @Bean
     public Step recommendSummaryStep(ItemReader<RecommendKeyword> recommendSummaryItemReader,
                                      ItemProcessor<RecommendKeyword, RecommendKeyword> recommendSummaryItemProcessor,
                                      ItemWriter<RecommendKeyword> recommendSummaryItemWriter,
-                                     PlatformTransactionManager transactionManager) {  // ✅ 파라미터로
+                                     PlatformTransactionManager transactionManager) {
         return new StepBuilder("recommendSummaryStep", jobRepository)
                 .<RecommendKeyword, RecommendKeyword>chunk(SUMMARY_CHUNK_SIZE, transactionManager)
-                .reader(recommendSummaryItemReader)
+
+                .reader(new SynchronizedItemStreamReaderBuilder<RecommendKeyword>()
+                        .delegate((ItemStreamReader<RecommendKeyword>) recommendSummaryItemReader)
+                        .build())
+
                 .processor(recommendSummaryItemProcessor)
                 .writer(recommendSummaryItemWriter)
+
+                .taskExecutor(batchQuizExecutor)
+
                 .build();
     }
 
@@ -115,7 +129,7 @@ public class BatchConfig {
     public Step notificationStep(ItemReader<NotificationSetting> notificationReader,
                                  ItemProcessor<NotificationSetting, Message> notificationProcessor,
                                  ItemWriter<Message> fcmBatchWriter,
-                                 PlatformTransactionManager transactionManager) {  // ✅ 파라미터로
+                                 PlatformTransactionManager transactionManager) {
         return new StepBuilder("notificationStep", jobRepository)
                 .<NotificationSetting, Message>chunk(USER_CHUNK_SIZE, transactionManager)
                 .reader(notificationReader)
