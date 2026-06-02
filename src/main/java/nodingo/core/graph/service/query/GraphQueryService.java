@@ -6,6 +6,7 @@ import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.graphPreview.GraphPreview;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
 import nodingo.core.graph.dto.result.*;
+import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.KeywordRelation;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.KeywordRelationRepository;
@@ -146,8 +147,14 @@ public class GraphQueryService {
     private GraphPreview.Request createAiRequest(Long centralId, List<KeywordRelation> relations, Map<Long, RecommendKeyword> recommendMap) {
         Set<Long> nodeIds = extractAllNodeIds(centralId, relations);
 
+        Map<Long, Keyword> relationKeywordMap = new HashMap<>();
+        relations.forEach(rel -> {
+            relationKeywordMap.put(rel.getSubjectKeyword().getId(), rel.getSubjectKeyword());
+            relationKeywordMap.put(rel.getRelatedKeyword().getId(), rel.getRelatedKeyword());
+        });
+
         return GraphPreview.Request.builder()
-                .recommendKeywords(mapToKeywordInputs(nodeIds, recommendMap))
+                .recommendKeywords(mapToKeywordInputs(nodeIds, recommendMap, relationKeywordMap))
                 .keywordRelations(mapToRelationInputs(relations))
                 .build();
     }
@@ -162,17 +169,25 @@ public class GraphQueryService {
         return ids;
     }
 
-    private List<GraphPreview.GraphRecommendKeywordInput> mapToKeywordInputs(Set<Long> nodeIds, Map<Long, RecommendKeyword> recommendMap) {
+    private List<GraphPreview.GraphRecommendKeywordInput> mapToKeywordInputs(
+            Set<Long> nodeIds,
+            Map<Long, RecommendKeyword> recommendMap,
+            Map<Long, Keyword> relationKeywordMap) {
+
         return nodeIds.stream()
                 .map(id -> {
                     RecommendKeyword rk = recommendMap.get(id);
+                    Keyword fallback = relationKeywordMap.get(id);
                     return GraphPreview.GraphRecommendKeywordInput.builder()
                             .keywordId(id)
-                            .word(rk != null ? rk.getKeyword().getWord() : "Unknown")
-                            .score(rk != null ? rk.getScore() : 1.0)
+                            .word(rk != null ? rk.getKeyword().getWord()
+                                    : fallback != null ? fallback.getWord() : "Unknown")
+                            .score(rk != null ? rk.getScore() : 0.0)
                             .summary(rk != null ? rk.getSummary() : "")
-                            .persona(rk != null && rk.getKeyword().getPersona() != null ?
-                                    rk.getKeyword().getPersona().name() : null)
+                            .persona(rk != null && rk.getKeyword().getPersona() != null
+                                    ? rk.getKeyword().getPersona().name()
+                                    : fallback != null && fallback.getPersona() != null
+                                    ? fallback.getPersona().name() : null)
                             .build();
                 }).toList();
     }
