@@ -20,6 +20,7 @@ public class NodeSummaryResponse {
     private String word;
     private String persona;
     private String summary;
+    private boolean hasNext;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<NewsItemBrief> news;
@@ -31,6 +32,7 @@ public class NodeSummaryResponse {
                 .persona(result.getPersona())
                 .summary(result.getSummary())
                 .news(result.getNews())
+                .hasNext(result.isHasNext())
                 .build();
     }
 }

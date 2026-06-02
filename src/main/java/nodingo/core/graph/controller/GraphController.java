@@ -60,7 +60,7 @@ public class GraphController {
 
     @Operation(
             summary = "특정 노드(소분류 키워드) 상세 요약 조회",
-            description = "그래프 내 노드 클릭 시 우측 패널(바텀시트)에 표시될 상세 요약 정보와 관련 뉴스 기사를 조회합니다."
+            description = "그래프 내 노드 클릭 시 우측 패널(바텀시트)에 표시될 상세 요약 정보와 관련 뉴스 기사를 조회합니다. (무한 스크롤 페이징 지원)"
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공적으로 키워드 요약 정보를 조회했습니다."),
@@ -69,8 +69,9 @@ public class GraphController {
     @GetMapping("/nodes/{nodeId}/summaries")
     public ResponseEntity<ApiResponse<NodeSummaryResponse>> getNodeSummary(
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
-            @PathVariable Long nodeId) {
-        NodeSummaryResult result = graphQueryService.getNodeSummary(customOAuth2User.getUser().getId(), nodeId);
+            @PathVariable Long nodeId,
+            @org.springframework.data.web.PageableDefault(size = 10) org.springframework.data.domain.Pageable pageable) {
+        NodeSummaryResult result = graphQueryService.getNodeSummary(customOAuth2User.getUser().getId(), nodeId, pageable);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 키워드 요약 정보를 조회했습니다.", NodeSummaryResponse.from(result)));
     }
 

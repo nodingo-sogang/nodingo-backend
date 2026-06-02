@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -35,7 +36,9 @@ public class RecommendKeywordInitService {
 
     @Transactional
     public void initForNewUser(User user) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalTime.now().isBefore(LocalTime.of(5, 0))
+                ? LocalDate.now().minusDays(1)
+                : LocalDate.now();
 
         if (recommendKeywordRepository.existsByUserIdAndTargetDate(user.getId(), today)) {
             log.info(">>>> [Onboarding] Recommend keywords already exist, skipping. userId={}", user.getId());
