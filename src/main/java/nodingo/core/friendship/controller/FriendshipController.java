@@ -85,7 +85,7 @@ public class FriendshipController {
     }
 
     @Operation(
-            summary = "정식 친구 목록 조회 (랭킹용)",
+            summary = "내 친구 목록 조회",
             description = "내가 신청했든 받았든 서로 수락이 완료된(ACCEPTED) 내 찐 친구 목록을 통합 조회합니다."
     )
     @ApiResponses(value = {
