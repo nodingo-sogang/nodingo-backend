@@ -158,6 +158,7 @@ public class UserController {
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "뱃지 목록을 완벽하게 불러왔습니다.")
     })
+    @RequireOnboardingCompleted
     @GetMapping("/badges")
     public ResponseEntity<ApiResponse<BadgeListResponse>> getMyBadges(
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
