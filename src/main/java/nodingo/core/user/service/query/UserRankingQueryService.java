@@ -6,7 +6,7 @@ import nodingo.core.friendship.repository.FriendshipRepository;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.user.domain.RankingScope;
 import nodingo.core.user.domain.User;
-import nodingo.core.user.dto.request.RankingQuery;
+import nodingo.core.user.dto.request.RankingRequest;
 import nodingo.core.user.dto.result.RankingEntryResult;
 import nodingo.core.user.dto.result.RankingListResult;
 import nodingo.core.user.repository.UserRepository;
@@ -26,17 +26,22 @@ public class UserRankingQueryService {
     private final FriendshipRepository friendshipRepository;
     private final RedisTemplate<String, String> redisTemplate;
 
-    public RankingListResult getRankingLeaderboard(RankingQuery query) {
-        if (query.getScope() == RankingScope.PERSONA) {
-            return getPersonaLeaderboard(query);
+    public RankingListResult getRankingLeaderboard(Long loginUserId, RankingRequest request) {
+        User loginUser = userRepository.findAllByIdWithPersonas(List.of(loginUserId)).stream()
+                .findFirst()
+                .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
+
+        String userOwnPersonaStr = loginUser.getPersonas().isEmpty() ? "NONE" : loginUser.getPersonas().get(0).name();
+        String redisKey = "ranking:weekly:" + userOwnPersonaStr;
+
+        if (request.getScope() == RankingScope.PERSONA) {
+            return getPersonaLeaderboard(loginUser, redisKey);
         }
-        return getFriendLeaderboard(query);
+        return getFriendLeaderboard(loginUser, redisKey);
     }
 
-    private RankingListResult getPersonaLeaderboard(RankingQuery query) {
-        Long myUserId = query.getUserId();
-        String redisKey = "ranking:weekly:" + query.getUserOwnPersona().name();
-
+    private RankingListResult getPersonaLeaderboard(User loginUser, String redisKey) {
+        Long myUserId = loginUser.getId();
         List<User> targetUsers;
         boolean isRedisDataExist = false;
 
@@ -55,7 +60,8 @@ public class UserRankingQueryService {
             dbUsers.forEach(u -> userMap.put(u.getId(), u));
             targetUsers = userIds.stream().map(userMap::get).filter(Objects::nonNull).toList();
         } else {
-            targetUsers = userRepository.fetchLeaderboardByPersona(query.getUserOwnPersona(), 100, 0);
+            String userOwnPersonaStr = loginUser.getPersonas().isEmpty() ? "NONE" : loginUser.getPersonas().get(0).name();
+            targetUsers = userRepository.fetchLeaderboardByPersona(loginUser.getPersonas().get(0), 100, 0);
         }
 
         List<RankingEntryResult> allEntries = generateRankingEntries(targetUsers, myUserId);
@@ -66,21 +72,14 @@ public class UserRankingQueryService {
                 .filter(RankingEntryResult::isMe)
                 .findFirst()
                 .orElseGet(() -> finalIsRedisDataExist
-                        ? fetchMyStickyEntryFromRedis(myUserId, redisKey)
-                        : fetchMyStickyEntryFromDbFallback(myUserId));
+                        ? fetchMyStickyEntryFromRedis(loginUser, redisKey)
+                        : fetchMyStickyEntryFromDbFallback(loginUser));
 
         return new RankingListResult("persona", "weekly", top10Entries, myEntry);
     }
 
-    private RankingEntryResult fetchMyStickyEntryFromDbFallback(Long myUserId) {
-        User user = userRepository.findById(myUserId)
-                .orElseThrow(() -> new UserNotFoundException("내 사용자 정보를 찾을 수 없습니다."));
-
-        return RankingEntryResult.ofFallback(user);
-    }
-
-    private RankingListResult getFriendLeaderboard(RankingQuery query) {
-        Long myUserId = query.getUserId();
+    private RankingListResult getFriendLeaderboard(User loginUser, String redisKey) {
+        Long myUserId = loginUser.getId();
 
         List<Long> friendIds = new ArrayList<>(friendshipRepository.fetchFriendUserIds(myUserId));
         friendIds.add(myUserId);
@@ -116,13 +115,14 @@ public class UserRankingQueryService {
         return entries;
     }
 
-    private RankingEntryResult fetchMyStickyEntryFromRedis(Long myUserId, String redisKey) {
-        User user = userRepository.findById(myUserId)
-                .orElseThrow(() -> new UserNotFoundException("내 사용자 정보를 찾을 수 없습니다."));
-
-        Long redisRank = redisTemplate.opsForZSet().reverseRank(redisKey, myUserId.toString());
+    private RankingEntryResult fetchMyStickyEntryFromRedis(User loginUser, String redisKey) {
+        Long redisRank = redisTemplate.opsForZSet().reverseRank(redisKey, loginUser.toString());
         int realRank = (redisRank != null) ? (int) (redisRank + 1) : 999;
 
-        return RankingEntryResult.from(user, realRank, myUserId);
+        return RankingEntryResult.from(loginUser, realRank, loginUser.getId());
+    }
+
+    private RankingEntryResult fetchMyStickyEntryFromDbFallback(User loginUser) {
+        return RankingEntryResult.ofFallback(loginUser);
     }
 }
