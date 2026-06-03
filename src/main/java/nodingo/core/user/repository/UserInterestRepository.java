@@ -15,11 +15,6 @@ public interface UserInterestRepository extends JpaRepository<UserInterest, Long
     @Query("delete from UserInterest ui where ui.user.id = :userId and ui.targetDate = :today")
     void deleteTodayInterests(@Param("userId") Long userId, @Param("today") LocalDate today);
 
-    @Query("select ui from UserInterest ui " +
-            "join fetch ui.keyword " +
-            "where ui.user.id = :userId and ui.targetDate = :today")
-    List<UserInterest> findTodayInterestsWithKeywords(@Param("userId") Long userId, @Param("today") LocalDate today);
-
     List<UserInterest> findByUserId(Long userId);
 
     @Query("SELECT i.keyword.id FROM UserInterest i WHERE i.user.id = :userId")

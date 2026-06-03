@@ -51,8 +51,6 @@ public class NewsFetchService {
         Map<String, Object> body = new HashMap<>();
         body.put("action", "getArticles");
 
-        // Reader에서 넘겨준 targetDate(어제)를 기준으로 시간 경계선 세팅
-        // 어제 05:00:00 ~ 오늘 04:59:59
         LocalDateTime startDateTime = targetDate.atTime(5, 0, 0);
         LocalDateTime endDateTime = targetDate.plusDays(1).atTime(4, 59, 59);
 
@@ -65,7 +63,7 @@ public class NewsFetchService {
         body.put("lang", "kor");
 
         body.put("articlesPage", page);
-        body.put("articlesCount", 100); // 한 번에 최대 100개씩 땡겨오기
+        body.put("articlesCount", 100);
         body.put("articlesSortBy", "date");
         body.put("resultType", "articles");
 

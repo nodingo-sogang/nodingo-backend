@@ -44,7 +44,7 @@ public class NeighborKeywordQuizTasklet implements Tasklet {
                 : LocalDate.now();
 
         List<Keyword> neighborKeywords = keywordRepository.findNeighborKeywordsWithNews(targetDate);
-        log.info(">>>> [NeighborQuiz] 병렬 처리 엔진 가동 - 총 이웃 키워드 개수: {}", neighborKeywords.size());
+        log.info(">>>> [NeighborQuiz] Parallel processing engine started - total neighbor keywords: {}", neighborKeywords.size());
 
         if (neighborKeywords.isEmpty()) {
             return RepeatStatus.FINISHED;
@@ -85,18 +85,18 @@ public class NeighborKeywordQuizTasklet implements Tasklet {
 
                         quizGenerationService.generateAndSaveQuizzes(keyword.getId(), summary);
 
-                        log.info(">>>> [NeighborQuiz] 퀴즈 생성 완료! Keyword: '{}' (Thread: {})",
+                        log.info(">>>> [NeighborQuiz] Quiz generation completed! Keyword: '{}' (Thread: {})",
                                 keyword.getWord(), Thread.currentThread().getName());
 
                     } catch (Exception e) {
-                        log.error(">>>> [NeighborQuiz] 키워드 처리 중 예외 발생. Keyword: {}", keyword.getWord(), e);
+                        log.error(">>>> [NeighborQuiz] Exception occurred while processing keyword. Keyword: {}", keyword.getWord(), e);
                     }
                 }, batchQuizExecutor))
                 .toList();
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-        log.info(">>>> [NeighborQuiz] 모든 이웃 키워드 퀴즈 생성 병렬 처리 완료!");
+        log.info(">>>> [NeighborQuiz] All neighbor keyword quiz generation parallel processing completed!");
         return RepeatStatus.FINISHED;
     }
 }

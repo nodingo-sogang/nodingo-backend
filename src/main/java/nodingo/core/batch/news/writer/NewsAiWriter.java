@@ -8,7 +8,6 @@ import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.KeywordRelation;
 import nodingo.core.keyword.repository.KeywordRelationRepository;
 import nodingo.core.keyword.repository.KeywordRepository;
-import nodingo.core.keyword.service.query.KeywordQueryService;
 import nodingo.core.news.domain.News;
 import nodingo.core.news.repository.NewsRepository;
 import nodingo.core.user.domain.InterestLevel;
@@ -56,13 +55,10 @@ public class NewsAiWriter implements ItemWriter<News> {
                 ? LocalDate.now().minusDays(1)
                 : LocalDate.now());
 
-        // 1. DB 1차 저장
         List<News> savedNews = newsRepository.saveAll(chunkItems);
         Map<Long, News> newsMap = savedNews.stream()
                 .collect(Collectors.toMap(News::getId, Function.identity()));
 
-        // 2. 기존 키워드 로드 후 AI 호출
-        // (파이썬이 기존 keyword_id를 매핑할 수 있도록 existingKeywords를 채워서 전달)
         List<Keyword> existingKeywords = keywordRepository.findAllByTargetDate(targetDate);
 
         NewsBatch.Request request = NewsBatch.Request.builder()
@@ -89,7 +85,6 @@ public class NewsAiWriter implements ItemWriter<News> {
 
         NewsBatch.Response aiResponse = aiClient.analyzeNewsBatch(request);
 
-        // 3. 임베딩/요약 업데이트
         for (NewsBatch.NewsAnalysisResult res : aiResponse.getNewsResults()) {
             News news = newsMap.get(res.getNewsId());
             if (news != null) {
@@ -98,7 +93,6 @@ public class NewsAiWriter implements ItemWriter<News> {
             }
         }
 
-        // 4. 이번 청크 키워드 단어 수집
         Set<String> allNormWords = new HashSet<>();
         Set<String> allMacroNames = new HashSet<>();
 
@@ -109,7 +103,6 @@ public class NewsAiWriter implements ItemWriter<News> {
             }
         }
 
-        // 5. 오늘 날짜 기준 한 방 조회 (N+1 방지)
         Map<String, Keyword> specificCache = keywordRepository.findSpecificsByDate(allNormWords, targetDate)
                 .stream()
                 .collect(Collectors.toMap(Keyword::getNormalizedWord, k -> k, (a, b) -> a));
@@ -118,7 +111,6 @@ public class NewsAiWriter implements ItemWriter<News> {
                 .stream()
                 .collect(Collectors.toMap(Keyword::getWord, k -> k, (a, b) -> a));
 
-        // 6. 키워드 계층 매핑 및 신규 저장
         for (NewsBatch.NewsAnalysisResult res : aiResponse.getNewsResults()) {
             News news = newsMap.get(res.getNewsId());
             if (news == null) continue;
@@ -128,7 +120,6 @@ public class NewsAiWriter implements ItemWriter<News> {
                 String macroName = kwRes.getMacro();
                 String personaStr = kwRes.getPersonas();
 
-                // A. 페르소나 변환
                 UserPersona persona = null;
                 if (personaStr != null && !personaStr.isBlank()) {
                     try {
@@ -138,7 +129,6 @@ public class NewsAiWriter implements ItemWriter<News> {
                     }
                 }
 
-                // B. 중분류 탐색 및 생성
                 Keyword macroKeyword = null;
                 if (macroName != null && !macroName.isBlank() && persona != null) {
                     final UserPersona finalPersona = persona;
@@ -152,7 +142,6 @@ public class NewsAiWriter implements ItemWriter<News> {
                     });
                 }
 
-                // C. 소분류 탐색 및 생성
                 final Keyword finalMacroKeyword = macroKeyword;
                 final UserPersona finalSpecificPersona = persona;
                 final LocalDate finalTargetDate = targetDate;
@@ -175,11 +164,9 @@ public class NewsAiWriter implements ItemWriter<News> {
             }
         }
 
-        // 7. 뉴스 최종 업데이트
         newsRepository.saveAll(savedNews);
         log.info(">>>> [Batch Writer] Finished analyzing and summarizing {} news articles.", savedNews.size());
 
-        // 8. 키워드 관계 저장 (upsert + 로그)
         if (aiResponse.getKeywordRelations() != null && !aiResponse.getKeywordRelations().isEmpty()) {
             int skippedNullNormalizedCount = 0;
             int skippedKeywordNotFoundCount = 0;

@@ -14,9 +14,6 @@ public interface NewsRepository extends JpaRepository<News, Long>, NewsRepositor
 
     boolean existsByUri(String uri);
 
-    @Query("select n.uri from News n where n.uri in :uris")
-    List<String> findExistingUris(@Param("uris") List<String> uris);
-
     @Query("select n from News n left join fetch n.newsKeywords nk left join fetch nk.keyword where n.id = :id")
     Optional<News> findByIdWithKeywords(@Param("id") Long id);
 

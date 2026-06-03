@@ -15,9 +15,6 @@ import java.util.Optional;
 
 
 public interface KeywordRepository extends JpaRepository<Keyword, Long>, KeywordRepositoryCustom {
-
-    Optional<Keyword> findByWordAndLevel(String word, InterestLevel level);
-
     List<Keyword> findAllByPersonaAndLevel(UserPersona persona, InterestLevel level, Pageable pageable);
 
     List<Keyword> findAllByParentIdAndLevel(Long parentId, InterestLevel level, Pageable pageable);

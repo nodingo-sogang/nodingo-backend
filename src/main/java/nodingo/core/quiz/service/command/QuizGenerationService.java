@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class QuizGenerationService {
 
@@ -31,10 +32,7 @@ public class QuizGenerationService {
     private final NewsKeywordRepository newsKeywordRepository;
     private final QuizRepository quizRepository;
 
-    // 🌟 [추가] 온보딩 전용: 요약본을 먼저 생성하고 기존 퀴즈 생성 로직을 호출합니다.
-    @Transactional
     public void generateForOnboarding(Long keywordId, Long userId) {
-        // 1. 이미 해당 키워드의 퀴즈가 존재하면 불필요한 AI 호출 방지
         if (quizRepository.existsByKeywordId(keywordId)) {
             log.info(">>>> [Quiz Gen] 퀴즈가 이미 존재하여 온보딩 생성을 스킵합니다. KeywordId: {}", keywordId);
             return;
@@ -42,7 +40,6 @@ public class QuizGenerationService {
 
         Keyword keyword = getKeywordOrElseThrow(keywordId);
 
-        // 2. 키워드 요약 생성 (연관된 최상위 뉴스 3개 추출)
         List<NewsKeyword> topNewsKeywords = newsKeywordRepository.findTopByKeywordId(keywordId, 3);
         if (topNewsKeywords.isEmpty()) {
             log.warn(">>>> [Quiz Gen] 관련 뉴스가 부족하여 요약/퀴즈 생성을 중단합니다. Keyword: {}", keyword.getWord());
@@ -73,11 +70,9 @@ public class QuizGenerationService {
         KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(summaryRequest);
         String summary = aiResponse.getSummary();
 
-        // 3. 받아온 요약본으로 기존 퀴즈 생성 로직 재사용
         generateAndSaveQuizzes(keywordId, summary);
     }
 
-    @Transactional
     public void generateAndSaveQuizzes(Long keywordId, String keywordSummary) {
         Keyword keyword = getKeywordOrElseThrow(keywordId);
 
