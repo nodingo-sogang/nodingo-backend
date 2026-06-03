@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import nodingo.core.user.dto.request.RankingQuery;
+import nodingo.core.user.dto.request.RankingRequest;
 import nodingo.core.user.dto.response.*;
 import nodingo.core.user.dto.result.*;
 import nodingo.core.global.annotation.RequireOnboardingCompleted;
@@ -30,7 +32,6 @@ import java.util.List;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
-
     private final OnboardingService onboardingService;
     private final OnboardingAsyncService onboardingAsyncService;
     private final OnboardingQueryService onboardingQueryService;
@@ -39,6 +40,7 @@ public class UserController {
     private final GameQueryService gameQueryService;
     private final BadgeQueryService badgeQueryService;
     private final UserSearchService userSearchService;
+    private final UserRankingQueryService userRankingQueryService;
 
     @Operation(
             summary = "대분류(Persona) 목록 조회",
@@ -64,7 +66,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<KeywordListResponse>> getMacros(
             @RequestParam UserPersona persona) {
         KeywordListResult result = onboardingQueryService.getMacroKeywords(persona);
-        return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 유저 맞춤형 중분류 목록을 조회했습니다.",KeywordListResponse.from(result)));
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 유저 맞춤형 중분류 목록을 조회했습니다.", KeywordListResponse.from(result)));
     }
 
     @Operation(
@@ -181,5 +183,25 @@ public class UserController {
         Long myUserId = customOAuth2User.getUser().getId();
         UserSearchResponse response = userSearchService.searchByNickname(nickname, myUserId);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "유저 검색 결과를 조회했습니다.", response));
+    }
+
+    @Operation(
+            summary = "주간 랭킹(리더보드) 목록 조회",
+            description = "RankingRequest 객체를 매개로 scope(FRIENDS/PERSONA)를 받아 로그인한 유저의 관심사 기반으로 상위 10등 리더보드를 자동 정산합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "랭킹 목록을 성공적으로 조회했습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "온보딩(관심사 설정)을 진행하지 않은 유저 진입 차단")
+    })
+    @RequireOnboardingCompleted
+    @GetMapping("/ranking")
+    public ResponseEntity<ApiResponse<RankingListResponse>> getWeeklyLeaderboard(
+            @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
+            @Valid @ModelAttribute RankingRequest request) {
+        User loginUser = customOAuth2User.getUser();
+        UserPersona myPersona = (loginUser.getPersonas() == null || loginUser.getPersonas().isEmpty()) ? null : loginUser.getPersonas().get(0);
+        RankingQuery query = RankingQuery.of(loginUser.getId(), myPersona, request.getScope(), request.getPage());
+        RankingListResult result = userRankingQueryService.getRankingLeaderboard(query);
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "랭킹 목록을 성공적으로 조회했습니다.", RankingListResponse.from(result)));
     }
 }

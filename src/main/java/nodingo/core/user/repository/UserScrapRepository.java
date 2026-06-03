@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface UserScrapRepository extends JpaRepository<UserScrap, Long>, UserScrapRepositoryCustom {
     boolean existsByUserIdAndNewsId(Long userId, Long newsId);
+
     Optional<UserScrap> findByUserIdAndNewsId(Long userId, Long newsId);
 }

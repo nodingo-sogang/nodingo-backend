@@ -98,6 +98,6 @@ public class FriendshipController {
 
         Long userId = customOAuth2User.getUser().getId();
         FriendListResult result = friendshipQueryService.getMyAcceptedFriends(userId);
-        return ResponseEntity.ok(new ApiResponse<>(true, 200, "정식 친구 목록을 성공적으로 조회했습니다.", FriendListResponse.from(result)));
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "내 친구 목록을 성공적으로 조회했습니다.", FriendListResponse.from(result)));
     }
 }

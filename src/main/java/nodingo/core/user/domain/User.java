@@ -28,7 +28,8 @@ import java.util.List;
         },
         indexes = {
                 @Index(name = "idx_provider", columnList = "provider, providerId"),
-                @Index(name = "idx_email", columnList = "email")
+                @Index(name = "idx_email", columnList = "email"),
+                @Index(name = "idx_nickname", columnList = "nickname")
         }
 )
 public class User extends BaseTimeEntity implements UserDetails {
@@ -48,7 +49,7 @@ public class User extends BaseTimeEntity implements UserDetails {
     @Column(nullable = false)
     private String email;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     private String nickname;
 
     @Column(nullable = false)
@@ -85,6 +86,9 @@ public class User extends BaseTimeEntity implements UserDetails {
 
     @Column(nullable = false, columnDefinition = "integer default 0")
     private Integer xp = 0;
+
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private int weeklyXp = 0;
 
     @Column(nullable = false, columnDefinition = "integer default 0")
     private int totalNodesExplored = 0;
@@ -154,6 +158,10 @@ public class User extends BaseTimeEntity implements UserDetails {
         this.refreshToken = refreshToken;
     }
 
+    public void resetWeeklyXp() {
+        this.weeklyXp = 0;
+    }
+
     public void completeOnboarding(List<UserPersona> personas) {
         if (personas == null || personas.isEmpty()) {
             throw new IllegalArgumentException("At least one persona must be selected.");
@@ -172,10 +180,7 @@ public class User extends BaseTimeEntity implements UserDetails {
         return this.onboardingStatus == OnboardingStatus.COMPLETED;
     }
 
-    public UserInterest addInterest(Keyword keyword,
-                                    InterestLevel level,
-                                    UserInterest parent,
-                                    LocalDate targetDate) {
+    public UserInterest addInterest(Keyword keyword, InterestLevel level, UserInterest parent, LocalDate targetDate) {
         return UserInterest.create(this, keyword, level, parent, targetDate);
     }
 
@@ -193,6 +198,7 @@ public class User extends BaseTimeEntity implements UserDetails {
 
     public boolean addXp(int earnedXp) {
         this.xp += earnedXp;
+        this.weeklyXp += earnedXp;
         boolean isLevelUp = false;
 
         while (true) {
@@ -210,6 +216,7 @@ public class User extends BaseTimeEntity implements UserDetails {
 
     public void removeXp(int lostXp) {
         this.xp = Math.max(0, this.xp - lostXp);
+        this.weeklyXp = Math.max(0, this.weeklyXp - lostXp);
     }
 
     public void addKeywordScrap() {

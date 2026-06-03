@@ -1,5 +1,6 @@
 package nodingo.core.friendship.repository.impl;
 
+import com.querydsl.core.types.dsl.CaseBuilder;
 import nodingo.core.friendship.domain.FriendStatus;
 import nodingo.core.friendship.domain.Friendship;
 
@@ -69,6 +70,20 @@ public class FriendshipRepositoryImpl implements FriendshipRepositoryCustom {
                 .join(friendship.receiver, receiver).fetchJoin()
                 .where(
                         friendship.requester.id.eq(userId).or(friendship.receiver.id.eq(userId)),
+                        friendship.status.eq(FriendStatus.ACCEPTED)
+                )
+                .fetch();
+    }
+
+    @Override
+    public List<Long> fetchFriendUserIds(Long userId) {
+        return queryFactory
+                .select(new CaseBuilder()
+                        .when(friendship.requester.id.eq(userId)).then(friendship.receiver.id)
+                        .otherwise(friendship.requester.id))
+                .from(friendship)
+                .where(
+                        (friendship.requester.id.eq(userId).or(friendship.receiver.id.eq(userId))),
                         friendship.status.eq(FriendStatus.ACCEPTED)
                 )
                 .fetch();

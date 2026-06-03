@@ -22,6 +22,7 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long>, Keyword
     List<Keyword> findByNormalizedWordIn(Collection<String> normalizedWords);
 
     Optional<Keyword> findByNormalizedWordAndLevelAndTargetDate(String normalizedWord, InterestLevel level, LocalDate targetDate);
+
     Optional<Keyword> findByWordAndLevelAndTargetDate(String word, InterestLevel level, LocalDate targetDate);
 
     List<Keyword> findAllByTargetDate(LocalDate targetDate);

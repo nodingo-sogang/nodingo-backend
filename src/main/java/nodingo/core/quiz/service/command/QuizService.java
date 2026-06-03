@@ -16,6 +16,7 @@ import nodingo.core.user.domain.User;
 import nodingo.core.user.domain.UserBadge;
 import nodingo.core.user.repository.UserBadgeRepository;
 import nodingo.core.user.repository.UserRepository;
+import nodingo.core.user.service.command.UserRankingService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class QuizService {
     private final UserQuizResultRepository userQuizResultRepository;
     private final QuizPolicy quizPolicy;
     private final UserBadgeRepository userBadgeRepository;
+    private final UserRankingService userRankingService;
 
     public QuizRewardResult submitQuiz(QuizSubmitCommand command) {
         User user = getUserOrElseThrow(command);
@@ -77,6 +79,9 @@ public class QuizService {
         }
 
         user.addXp(xp);
+
+        userRankingService.updateWeeklyXp(user.getId(), xp);
+
         return xp;
     }
 
