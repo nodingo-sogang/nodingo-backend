@@ -11,7 +11,10 @@ import nodingo.core.quiz.dto.result.QuizRewardResult;
 import nodingo.core.quiz.repository.QuizRepository;
 import nodingo.core.quiz.repository.UserQuizResultRepository;
 import nodingo.core.quiz.utils.QuizPolicy;
+import nodingo.core.user.domain.BadgeType;
 import nodingo.core.user.domain.User;
+import nodingo.core.user.domain.UserBadge;
+import nodingo.core.user.repository.UserBadgeRepository;
 import nodingo.core.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,7 @@ public class QuizService {
     private final QuizRepository quizRepository;
     private final UserQuizResultRepository userQuizResultRepository;
     private final QuizPolicy quizPolicy;
+    private final UserBadgeRepository userBadgeRepository;
 
     public QuizRewardResult submitQuiz(QuizSubmitCommand command) {
         User user = getUserOrElseThrow(command);
@@ -54,6 +58,10 @@ public class QuizService {
 
         if (user.getTotalQuizzesCompleted() == 1) {
             newBadges.add("FIRST_QUIZ");
+
+            if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.FIRST_QUIZ)) {
+                userBadgeRepository.save(UserBadge.create(user, BadgeType.FIRST_QUIZ));
+            }
         }
 
         return xp;

@@ -3,7 +3,10 @@ package nodingo.core.user.service.command;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.global.exception.user.UserNotFoundException;
+import nodingo.core.user.domain.BadgeType;
 import nodingo.core.user.domain.User;
+import nodingo.core.user.domain.UserBadge;
+import nodingo.core.user.repository.UserBadgeRepository;
 import nodingo.core.user.repository.UserRepository;
 import nodingo.core.user.utils.GamePolicy;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ public class UserGameService {
 
     private final UserRepository userRepository;
     private final GamePolicy gamePolicy;
+    private final UserBadgeRepository userBadgeRepository;
 
     public void checkAndRewardAttendance(Long userId) {
         User user = getUserOrElseThrow(userId);
@@ -43,6 +47,11 @@ public class UserGameService {
     private void ifFirstVisit(User user, LocalDate standardToday) {
         if (user.recordAttendance(standardToday)) {
             user.addXp(gamePolicy.getFirstVisitXp());
+
+            if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.FIRST_VISIT)) {
+                userBadgeRepository.save(UserBadge.create(user, BadgeType.FIRST_VISIT));
+            }
+
             log.info(">>>> [Attendance Reward] User {} checked in for date: {}. Earned {} XP",
                     user.getId(), standardToday, gamePolicy.getFirstVisitXp());
         }
