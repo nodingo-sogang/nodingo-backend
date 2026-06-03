@@ -22,7 +22,7 @@ public class GraphService {
     private final UserRepository userRepository;
     private final KeywordRepository keywordRepository;
     private final UserKeywordExploreRepository exploreRepository;
-    private final GamePolicy gamePolicy; // 🔥 정책 주입
+    private final GamePolicy gamePolicy;
 
     @Transactional
     public void exploreNode(Long userId, Long keywordId) {

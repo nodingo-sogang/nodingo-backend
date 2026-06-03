@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import nodingo.core.quiz.domain.Quiz;
 import nodingo.core.quiz.repository.custom.QuizRepositoryCustom;
 import org.springframework.stereotype.Repository;
+
+import java.util.Comparator;
 import java.util.List;
 
 import static nodingo.core.quiz.domain.QQuiz.quiz;
@@ -22,6 +24,9 @@ public class QuizRepositoryImpl implements QuizRepositoryCustom {
                 .where(quiz.keyword.id.eq(keywordId))
                 .orderBy(quiz.id.desc())
                 .limit(3)
-                .fetch();
+                .fetch()
+                .stream()
+                .sorted(Comparator.comparingLong(Quiz::getId))
+                .toList();
     }
 }
