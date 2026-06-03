@@ -4,6 +4,9 @@ import nodingo.core.global.dto.response.ApiResponse;
 import nodingo.core.global.exception.ai.AiIntegrationException;
 import nodingo.core.global.exception.auth.InvalidTokenException;
 import nodingo.core.global.exception.auth.TokenNotFoundException;
+import nodingo.core.global.exception.friendship.AlreadyFriendException;
+import nodingo.core.global.exception.friendship.FriendRequestNotFoundException;
+import nodingo.core.global.exception.friendship.SelfFriendRequestException;
 import nodingo.core.global.exception.keyword.KeywordNotFoundException;
 import nodingo.core.global.exception.news.NewsIllegalException;
 import nodingo.core.global.exception.news.NewsNotFoundException;
@@ -92,8 +95,27 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
+    //DuplicateScrapException
     @ExceptionHandler(DuplicateScrapException.class)
     protected ResponseEntity<ApiResponse<?>> handleDuplicateScrapException(DuplicateScrapException e){
+        return buildErrorResponse(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    //FriendRequestNotFoundException
+    @ExceptionHandler(FriendRequestNotFoundException.class)
+    protected ResponseEntity<ApiResponse<?>> handleInviteCodeNotFoundException(FriendRequestNotFoundException e) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    //SelfFriendRequestException
+    @ExceptionHandler(SelfFriendRequestException.class)
+    protected ResponseEntity<ApiResponse<?>> handleSelfInviteCodeException(SelfFriendRequestException e) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    //AlreadyFriendException
+    @ExceptionHandler(AlreadyFriendException.class)
+    protected ResponseEntity<ApiResponse<?>> handleAlreadyFriendException(AlreadyFriendException e) {
         return buildErrorResponse(HttpStatus.CONFLICT, e.getMessage());
     }
 
