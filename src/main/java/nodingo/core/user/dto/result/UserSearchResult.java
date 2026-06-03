@@ -1,4 +1,4 @@
-package nodingo.core.friendship.dto.result;
+package nodingo.core.user.dto.result;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,18 +8,18 @@ import nodingo.core.user.domain.User;
 @Getter
 @Builder
 @AllArgsConstructor
-public class FriendProfileResult {
+public class UserSearchResult {
     private Long userId;
     private String nickname;
     private Integer level;
     private String persona;
 
-    public static FriendProfileResult from(User user) {
+    public static UserSearchResult from(User user) {
         String personaStr = (user.getPersonas() != null && !user.getPersonas().isEmpty())
                 ? user.getPersonas().get(0).name()
                 : "NONE";
 
-        return FriendProfileResult.builder()
+        return UserSearchResult.builder()
                 .userId(user.getId())
                 .nickname(user.getNickname())
                 .level(user.getLevel())
