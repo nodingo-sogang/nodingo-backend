@@ -24,6 +24,7 @@ public class UserGameService {
     private final UserRepository userRepository;
     private final GamePolicy gamePolicy;
     private final UserBadgeRepository userBadgeRepository;
+    private final UserRankingService userRankingService;
 
     public void checkAndRewardAttendance(Long userId) {
         User user = getUserOrElseThrow(userId);
@@ -36,10 +37,15 @@ public class UserGameService {
 
     private void ifFirstVisit(User user, LocalDate standardToday) {
         if (user.recordAttendance(standardToday)) {
-            user.addXp(gamePolicy.getFirstVisitXp());
+            int firstVisitXp = gamePolicy.getFirstVisitXp();
+            user.addXp(firstVisitXp);
+
+            userRankingService.updateWeeklyXp(user.getId(), firstVisitXp);
+
             if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.FIRST_VISIT)) {
                 userBadgeRepository.save(UserBadge.create(user, BadgeType.FIRST_VISIT));
             }
+
             int currentStreak = user.getConsecutiveAttendanceDays();
             if (currentStreak >= 7) {
                 if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.ATTENDANCE_7)) {
@@ -55,7 +61,7 @@ public class UserGameService {
             }
 
             log.info(">>>> [Attendance Reward] User {} checked in for date: {}. Earned {} XP. Current Streak: {}",
-                    user.getId(), standardToday, gamePolicy.getFirstVisitXp(), currentStreak);
+                    user.getId(), standardToday, firstVisitXp, currentStreak);
         }
     }
 

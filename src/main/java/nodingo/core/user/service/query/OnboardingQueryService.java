@@ -3,13 +3,10 @@ package nodingo.core.user.service.query;
 import lombok.RequiredArgsConstructor;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.keyword.repository.KeywordRepository;
-import nodingo.core.user.domain.InterestLevel;
 import nodingo.core.user.domain.OnboardingStatus;
 import nodingo.core.user.domain.UserPersona;
 import nodingo.core.user.dto.result.*;
 import nodingo.core.user.repository.UserRepository;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

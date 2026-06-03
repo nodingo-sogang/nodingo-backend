@@ -1,6 +1,8 @@
 package nodingo.core.keyword.service.command;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import nodingo.core.user.service.command.UserRankingService;
 import nodingo.core.user.utils.GamePolicy;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
 import nodingo.core.global.exception.scrap.DuplicateScrapException;
@@ -16,6 +18,7 @@ import nodingo.core.user.service.vector.UserVectorService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,18 +29,23 @@ public class RecommendKeywordScrapService {
     private final RecommendKeywordRepository recommendKeywordRepository;
     private final UserVectorService userVectorService;
     private final GamePolicy gamePolicy;
+    private final UserRankingService userRankingService;
 
     public void addScrap(Long userId, Long keywordId) {
         RecommendKeyword rk = getRk(userId, keywordId, "해당 키워드 추천 정보를 찾을 수 없습니다.");
 
-        extracted(userId, rk);
+        isAlreadyScrapped(userId, rk);
 
         User user = getUser(userId);
 
         userScrapRepository.save(UserScrap.createRecommendKeywordScrap(user, rk));
 
         user.addKeywordScrap();
-        user.addXp(gamePolicy.getScrapXp());
+
+        int scrapXp = gamePolicy.getScrapXp();
+        user.addXp(scrapXp);
+
+        userRankingService.updateWeeklyXp(user.getId(), scrapXp);
 
         userVectorService.updateKeywordEmbeddingAsync(userId, keywordId);
     }
@@ -50,7 +58,11 @@ public class RecommendKeywordScrapService {
         User user = getUser(userId);
 
         user.removeKeywordScrap();
-        user.removeXp(gamePolicy.getScrapXp());
+
+        int scrapXp = gamePolicy.getScrapXp();
+        user.removeXp(scrapXp);
+
+        userRankingService.updateWeeklyXp(user.getId(), -scrapXp);
 
         userScrapRepository.delete(scrap);
     }
@@ -60,7 +72,7 @@ public class RecommendKeywordScrapService {
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
     }
 
-    private void extracted(Long userId, RecommendKeyword rk) {
+    private void isAlreadyScrapped(Long userId, RecommendKeyword rk) {
         if (userScrapRepository.isKeywordScrapped(userId, rk.getId())) {
             throw new DuplicateScrapException("이미 스크랩한 키워드입니다.");
         }

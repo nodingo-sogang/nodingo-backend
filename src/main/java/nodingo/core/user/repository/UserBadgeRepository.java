@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface UserBadgeRepository extends JpaRepository<UserBadge, Long> {
     boolean existsByUserIdAndBadgeType(Long userId, BadgeType badgeType);
+
     List<UserBadge> findAllByUserId(Long userId);
 }

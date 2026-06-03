@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface NewsRepository extends JpaRepository<News, Long>, NewsRepositoryCustom {
-
     boolean existsByUri(String uri);
 
     @Query("select n from News n left join fetch n.newsKeywords nk left join fetch nk.keyword where n.id = :id")
