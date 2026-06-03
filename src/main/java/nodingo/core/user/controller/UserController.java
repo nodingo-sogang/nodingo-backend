@@ -132,7 +132,7 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "유저 정보를 찾을 수 없음")
     })
     @RequireOnboardingCompleted
-    @GetMapping
+    @GetMapping("/progress")
     public ResponseEntity<ApiResponse<UserProgressResponse>> getMyProgress(
             @AuthenticationPrincipal CustomOAuth2User user) {
         Long userId = user.getUser().getId();
