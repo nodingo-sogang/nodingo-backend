@@ -36,7 +36,7 @@ public class QuizService {
 
         checkIfSubmitted(command);
 
-        boolean isCorrect = quiz.getAnswerIndex().equals(command.getSelectedOptionIndex());
+        boolean isCorrect = quiz.getAnswerIndex().equals(command.getSelectedOptionIndex() - 1);
         userQuizResultRepository.save(UserQuizResult.create(user, quiz, isCorrect));
 
         List<String> newBadges = new ArrayList<>();
