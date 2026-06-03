@@ -12,14 +12,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FriendProfileResponse {
     private Long userId;
-    private String name;
+    private String nickname;
     private Integer level;
     private String persona;
 
     public static FriendProfileResponse from(FriendProfileResult result) {
         return FriendProfileResponse.builder()
                 .userId(result.getUserId())
-                .name(result.getName())
+                .nickname(result.getNickname())
                 .level(result.getLevel())
                 .persona(result.getPersona())
                 .build();

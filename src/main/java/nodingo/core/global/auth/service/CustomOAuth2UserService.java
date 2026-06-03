@@ -44,6 +44,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return userRepository.findByProviderAndProviderId(userInfo.getProvider(), userInfo.getProviderId())
                 .map(existingUser -> {
                     existingUser.updateInfo(userInfo.getName(), userInfo.getEmail());
+                    existingUser.updateNickname(userInfo.getNickname());
                     return existingUser;
                 })
                 .orElseGet(() -> {
@@ -52,7 +53,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             userInfo.getProviderId(),
                             userInfo.getProvider() + "_" + userInfo.getProviderId(),
                             userInfo.getName(),
-                            userInfo.getEmail()
+                            userInfo.getEmail(),
+                            userInfo.getNickname()
                     );
                     return userRepository.save(newUser);
                 });

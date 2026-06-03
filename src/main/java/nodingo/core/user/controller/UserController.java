@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import nodingo.core.user.dto.response.*;
 import nodingo.core.user.dto.result.*;
@@ -16,11 +17,8 @@ import nodingo.core.user.dto.command.SaveOnboardingCommand;
 import nodingo.core.user.dto.request.OnboardingRequest;
 import nodingo.core.user.service.async.OnboardingAsyncService;
 import nodingo.core.user.service.command.UserGameService;
-import nodingo.core.user.service.query.BadgeQueryService;
-import nodingo.core.user.service.query.GameQueryService;
-import nodingo.core.user.service.query.OnboardingQueryService;
+import nodingo.core.user.service.query.*;
 import nodingo.core.user.service.command.OnboardingService;
-import nodingo.core.user.service.query.UserProgressQueryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -40,6 +38,7 @@ public class UserController {
     private final UserGameService userGameService;
     private final GameQueryService gameQueryService;
     private final BadgeQueryService badgeQueryService;
+    private final UserSearchService userSearchService;
 
     @Operation(
             summary = "대분류(Persona) 목록 조회",
@@ -146,7 +145,6 @@ public class UserController {
     @GetMapping("/game")
     public ResponseEntity<ApiResponse<GameProfileResponse>> getMyGameProfile(
             @AuthenticationPrincipal CustomOAuth2User user) {
-
         GameProfileResult result = gameQueryService.getMyProfile(user.getUser().getId());
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "게임 프로필을 성공적으로 조회했습니다.", GameProfileResponse.from(result)));
     }
@@ -164,5 +162,24 @@ public class UserController {
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
         BadgeListResult result = badgeQueryService.getUserBadges(customOAuth2User.getUser().getId());
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "뱃지 목록을 성공적으로 조회했습니다.", BadgeListResponse.from(result)));
+    }
+
+    @Operation(
+            summary = "닉네임으로 유저 검색",
+            description = "닉네임으로 유저를 검색합니다. 완전 일치 검색이며 본인 닉네임은 검색되지 않습니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "유저 검색 결과를 조회했습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "해당 닉네임의 유저를 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "온보딩이 완료되지 않은 경우")
+    })
+    @RequireOnboardingCompleted
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<UserSearchResponse>> searchUsers(
+            @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
+            @RequestParam @NotBlank String nickname) {
+        Long myUserId = customOAuth2User.getUser().getId();
+        UserSearchResponse response = userSearchService.searchByNickname(nickname, myUserId);
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "유저 검색 결과를 조회했습니다.", response));
     }
 }

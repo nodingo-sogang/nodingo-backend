@@ -13,4 +13,5 @@ public interface UserRepository extends JpaRepository<User,Long> {
     Optional<User> findByUsername(String username);
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.interests WHERE u.id = :userId")
     Optional<User> findByIdWithInterests(@Param("userId") Long userId);
+    Optional<User> findByNicknameAndIdNot(String nickname, Long myUserId);
 }
