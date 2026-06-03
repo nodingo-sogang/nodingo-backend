@@ -102,6 +102,9 @@ public class User extends BaseTimeEntity implements UserDetails {
     @Column(nullable = false, columnDefinition = "integer default 0")
     private int dailyQuizzesCompleted = 0;
 
+    @Column(unique = true, length = 20)
+    private String inviteCode;
+
     // ==========================================
     // Spring Security UserDetails 구현
     // ==========================================
@@ -287,6 +290,16 @@ public class User extends BaseTimeEntity implements UserDetails {
     @Transient
     public int getXpNeededForNextLevel() {
         return (int) Math.floor(100 * Math.pow(1.4, this.level - 1));
+    }
+
+    // ==========================================
+    // 친구 초대 비즈니스 로직
+    // ==========================================
+
+    public void assignInviteCode(String inviteCode) {
+        if (this.inviteCode == null) {
+            this.inviteCode = inviteCode;
+        }
     }
 
     private static float[] emptyEmbedding() {
