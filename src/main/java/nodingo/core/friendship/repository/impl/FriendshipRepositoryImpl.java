@@ -54,7 +54,6 @@ public class FriendshipRepositoryImpl implements FriendshipRepositoryCustom {
         return queryFactory
                 .selectFrom(friendship)
                 .join(friendship.requester, requester).fetchJoin()
-                .join(requester.personas).fetchJoin()
                 .where(
                         friendship.receiver.id.eq(userId),
                         friendship.status.eq(FriendStatus.PENDING)
@@ -67,11 +66,9 @@ public class FriendshipRepositoryImpl implements FriendshipRepositoryCustom {
         return queryFactory
                 .selectFrom(friendship)
                 .join(friendship.requester, requester).fetchJoin()
-                .join(requester.personas).fetchJoin()
                 .join(friendship.receiver, receiver).fetchJoin()
-                .join(receiver.personas).fetchJoin()
                 .where(
-                        (friendship.requester.id.eq(userId).or(friendship.receiver.id.eq(userId))),
+                        friendship.requester.id.eq(userId).or(friendship.receiver.id.eq(userId)),
                         friendship.status.eq(FriendStatus.ACCEPTED)
                 )
                 .fetch();
