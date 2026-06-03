@@ -198,10 +198,8 @@ public class UserController {
     public ResponseEntity<ApiResponse<RankingListResponse>> getWeeklyLeaderboard(
             @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
             @Valid @ModelAttribute RankingRequest request) {
-        User loginUser = customOAuth2User.getUser();
-        UserPersona myPersona = (loginUser.getPersonas() == null || loginUser.getPersonas().isEmpty()) ? null : loginUser.getPersonas().get(0);
-        RankingQuery query = RankingQuery.of(loginUser.getId(), myPersona, request.getScope(), request.getPage());
-        RankingListResult result = userRankingQueryService.getRankingLeaderboard(query);
+        Long loginUserId = customOAuth2User.getUser().getId();
+        RankingListResult result = userRankingQueryService.getRankingLeaderboard(loginUserId, request);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "랭킹 목록을 성공적으로 조회했습니다.", RankingListResponse.from(result)));
     }
 }
