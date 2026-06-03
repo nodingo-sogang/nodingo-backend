@@ -36,9 +36,7 @@ public class RecommendKeywordInitService {
 
     @Transactional
     public void initForNewUser(User user) {
-        LocalDate today = LocalTime.now().isBefore(LocalTime.of(5, 0))
-                ? LocalDate.now().minusDays(1)
-                : LocalDate.now();
+        LocalDate today = getToday();
 
         if (recommendKeywordRepository.existsByUserIdAndTargetDate(user.getId(), today)) {
             log.info(">>>> [Onboarding] Recommend keywords already exist, skipping. userId={}", user.getId());
@@ -63,7 +61,7 @@ public class RecommendKeywordInitService {
 
                     if (topNewsKeywords.isEmpty()) {
                         rk.updateSummary("관련 뉴스가 부족하여 요약할 수 없습니다.");
-                        return CompletableFuture.completedFuture((Void) null); // 즉시 완료된 DTO 반환 (스킵)
+                        return CompletableFuture.completedFuture((Void) null);
                     }
 
                     List<KeywordSummary.SummaryNewsInput> newsInputs = topNewsKeywords.stream()
@@ -107,5 +105,11 @@ public class RecommendKeywordInitService {
 
         log.info(">>>> [Onboarding] Successfully initialized recommend keywords for new user. userId={}, count={}",
                 user.getId(), recommendations.size());
+    }
+
+    private static LocalDate getToday() {
+        return LocalTime.now().isBefore(LocalTime.of(5, 0))
+                ? LocalDate.now().minusDays(1)
+                : LocalDate.now();
     }
 }

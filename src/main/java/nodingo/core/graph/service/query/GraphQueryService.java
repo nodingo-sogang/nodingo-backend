@@ -91,7 +91,6 @@ public class GraphQueryService {
 
         GraphPreview.Response filteredResponse = filterUnknownNodes(aiResponse);
 
-        // summary 없는 edge 노드들 동기로 summary 생성
         List<Long> emptySummaryNodeIds = filteredResponse.getNodes().stream()
                 .filter(node -> node.getSummary() == null || node.getSummary().isBlank())
                 .map(GraphPreview.GraphNode::getId)
@@ -100,9 +99,7 @@ public class GraphQueryService {
         Map<Long, String> generatedSummaries = new HashMap<>();
         if (!emptySummaryNodeIds.isEmpty()) {
             generatedSummaries = neighborSummaryService.generateSummarySync(emptySummaryNodeIds);
-            // 퀴즈는 비동기로
             neighborSummaryService.generateQuizAsync(emptySummaryNodeIds, generatedSummaries);
-            // 응답에 summary 반영
             filteredResponse = injectSummaries(filteredResponse, generatedSummaries);
         }
 

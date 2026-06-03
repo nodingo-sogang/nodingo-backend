@@ -21,10 +21,6 @@ import nodingo.core.keyword.repository.KeywordRepository;
 public class KeywordRecommendQueryService {
     private final KeywordRepository keywordRepository;
 
-    /**
-     * 1. [공통] 어제 05:01 ~ 오늘 04:59 사이의 후보 키워드 추출
-     * (배치 시작 시 딱 1번만 메모리에 올려서 재사용)
-     */
     public List<KeywordRecommend.CandidateKeyword> getDailyCandidateKeywords(LocalDate targetDate) {
         LocalDateTime startTime = targetDate.minusDays(1).atTime(LocalTime.of(5, 1));
         LocalDateTime endTime = targetDate.atTime(LocalTime.of(4, 59));

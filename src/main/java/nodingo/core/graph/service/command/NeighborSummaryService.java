@@ -33,7 +33,6 @@ public class NeighborSummaryService {
     private final AiClient aiClient;
     private final RecommendKeywordRepository recommendKeywordRepository;
 
-    // 동기: summary만 생성해서 반환
     public Map<Long, String> generateSummarySync(List<Long> keywordIds) {
         LocalDate targetDate = LocalTime.now().isBefore(LocalTime.of(5, 0))
                 ? LocalDate.now().minusDays(1)
@@ -48,7 +47,6 @@ public class NeighborSummaryService {
 
                 String summary = null;
 
-                // RecommendKeyword에 summary 있으면 재사용
                 Optional<RecommendKeyword> recommendKeyword = recommendKeywordRepository
                         .findByKeywordIdAndTargetDate(keywordId, targetDate);
 
@@ -96,7 +94,6 @@ public class NeighborSummaryService {
         return summaryMap;
     }
 
-    // 비동기: 퀴즈만 생성
     @Async
     @Transactional
     public void generateQuizAsync(List<Long> keywordIds, Map<Long, String> summaryMap) {

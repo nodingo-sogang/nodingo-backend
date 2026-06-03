@@ -50,7 +50,6 @@ public class NewsApiReader implements ItemReader<NewsApiItem> {
             return null;
         }
 
-        // 5. Iterator 갱신 및 페이지 정보 계산
         List<NewsApiItem> results = response.getArticles().getResults();
         itemIterator = results.iterator();
 
@@ -66,7 +65,6 @@ public class NewsApiReader implements ItemReader<NewsApiItem> {
 
         currentPage++;
 
-        // 6. 새로 읽어온 데이터의 첫 번째 아이템 반환
         return itemIterator.hasNext() ? itemIterator.next() : null;
     }
 }

@@ -41,7 +41,6 @@ public class NewsRelationTasklet implements Tasklet {
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
         log.info(">>>> [Relation Tasklet] Starting news relation building process.");
 
-        // 1. requestTime 기준 24시간 범위로 뉴스 조회
         LocalDateTime endTime = requestTime != null ? requestTime : LocalDateTime.now();
         LocalDateTime startTime = endTime.minusHours(24);
 
@@ -55,7 +54,6 @@ public class NewsRelationTasklet implements Tasklet {
         Map<Long, News> newsMap = targetNews.stream()
                 .collect(Collectors.toMap(News::getId, Function.identity()));
 
-        // 2. AI 서버 요청 객체 생성
         List<NewsRelationAnalysis.NewsEmbeddingInput> inputs = targetNews.stream()
                 .map(n -> NewsRelationAnalysis.NewsEmbeddingInput.builder()
                         .newsId(n.getId())
@@ -70,10 +68,8 @@ public class NewsRelationTasklet implements Tasklet {
                 .build();
 
         try {
-            // 3. FastAPI 호출
             NewsRelationAnalysis.Response response = aiClient.buildNewsRelations(request);
 
-            // 4. 결과 매핑 및 DB 저장
             if (response.getRelations() != null) {
                 List<NewsRelation> relationsToSave = new ArrayList<>();
 

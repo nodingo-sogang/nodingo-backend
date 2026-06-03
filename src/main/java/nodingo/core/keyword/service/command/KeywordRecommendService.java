@@ -30,24 +30,19 @@ public class KeywordRecommendService {
     private final RecommendKeywordRepository recommendKeywordRepository;
     private final UserInterestRepository userInterestRepository;
 
-    /**
-     * [개별] 유저 한 명에 대해 파이썬 AI 호출 및 결과 DB 저장
-     */
     public List<RecommendKeyword> generateRecommendationForUser(
             User user,
-            List<KeywordRecommend.CandidateKeyword> commonCandidateKeywords, // 공통 후보군
+            List<KeywordRecommend.CandidateKeyword> commonCandidateKeywords,
             LocalDate targetDate) {
 
         if (user.getEmbedding() == null || commonCandidateKeywords.isEmpty()) {
             return List.of();
         }
 
-        // 1. 유저의 기존 관심사 키워드 ID 추출
         Set<Long> userInterestKeywordIds = userInterestRepository.findByUserId(user.getId()).stream()
                 .map(interest -> interest.getKeyword().getId())
                 .collect(Collectors.toSet());
 
-        // 2. 공통 후보군에 "유저 개인의 관심사 여부"를 덮어씌운 '개인화된 후보군' 생성
         List<KeywordRecommend.CandidateKeyword> personalizedCandidates = commonCandidateKeywords.stream()
                 .map(candidate -> KeywordRecommend.CandidateKeyword.builder()
                         .keywordId(candidate.getKeywordId())
@@ -59,7 +54,6 @@ public class KeywordRecommendService {
                         .build())
                 .collect(Collectors.toList());
 
-        // 3. AI 서버 요청 조립 (개인화된 후보군을 전달)
         KeywordRecommend.Request request = KeywordRecommend.Request.builder()
                 .userId(user.getId())
                 .userEmbedding(user.getEmbedding())

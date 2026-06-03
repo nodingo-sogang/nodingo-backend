@@ -23,7 +23,6 @@ public class NewsAiProcessor implements ItemProcessor<NewsApiItem, News> {
 
         String articleUri = articleItem.getUri();
 
-        // 1. 유효성 및 중복 검증
         if (articleUri == null || articleUri.isBlank()) {
             log.warn(">>>> [Batch Processor] Skip: uri is empty. url={}", articleItem.getUrl());
             return null;

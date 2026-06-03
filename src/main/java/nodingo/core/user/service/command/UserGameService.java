@@ -26,7 +26,6 @@ public class UserGameService {
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
     }
 
-
     private void ifFirstVisit(User user) {
         if (user.recordAttendance()) {
             user.addXp(gamePolicy.getFirstVisitXp());

@@ -228,41 +228,49 @@ public class User extends BaseTimeEntity implements UserDetails {
         this.totalKeywordsScrapped = Math.max(0, this.totalKeywordsScrapped - 1);
     }
 
-    public void addNodeExplore() { this.totalNodesExplored++; }
-
+    public void addNodeExplore() {
+        this.totalNodesExplored++;
+    }
 
     /**
-     * 일일 퀴즈 목표(2회) 달성 여부 체크
-     * @return 2회 달성 시 true
+     * 🌟 일일 퀴즈 목표 달성 여부 체크 및 지연 초기화 트리거
+     * @param standardToday 서비스 레이어에서 계산해서 넘겨준 새벽 5시 윈도우 기준 당일 날짜
+     * @param dailyGoalCount 정책 파일에서 정의한 목표 퀴즈 개수 (현재 2개)
+     * @return 목표 도달 시점에 딱 한 번만 true 반환 (영수증 보너스 팝업용)
      */
-    public boolean checkAndAddDailyQuiz() {
-        LocalDate today = LocalDate.now();
-        if (!today.equals(this.lastQuizDate)) {
+    public boolean checkAndAddDailyQuiz(LocalDate standardToday, int dailyGoalCount) {
+        // 1. 마지막으로 퀴즈 푼 날짜가 새벽 5시 기준일보다 과거라면, 새로운 날이 밝았으므로 일일 카운터 리셋!
+        if (this.lastQuizDate == null || !standardToday.equals(this.lastQuizDate)) {
             this.dailyQuizzesCompleted = 0;
-            this.lastQuizDate = today;
+            this.lastQuizDate = standardToday;
         }
+
+        // 2. 카운터 증가
         this.dailyQuizzesCompleted++;
         this.totalQuizzesCompleted++;
 
-        return this.dailyQuizzesCompleted == 2;
+        // 3. 🌟 드디어 quizPolicy.getDailyGoalCount()를 사용하여 하드코딩 없이 비즈니스 목표 달성 검증!
+        return this.dailyQuizzesCompleted == dailyGoalCount;
     }
+
     /**
-     * 출석 트래킹 및 연속 출석 체크
-     * @return 오늘 첫 출석이면 true (이때 출석 XP 지급하면 됨)
+     * 🌟 [출석 동기화] 출석 트래킹 및 연속 출석 체크 (5시 기준일 정렬)
+     * @param standardToday 서비스 레이어에서 계산해서 넘겨준 새벽 5시 윈도우 기준 당일 날짜
+     * @return 오늘 새벽 5시 윈도우상 첫 출석이면 true (이때 출석 XP 지급)
      */
-    public boolean recordAttendance() {
-        LocalDate today = LocalDate.now();
-        if (today.equals(this.lastVisitDate)) {
-            return false; // 오늘 이미 출석함
+    public boolean recordAttendance(LocalDate standardToday) {
+        if (standardToday.equals(this.lastVisitDate)) {
+            return false; // 새벽 5시 기준 윈도우상 오늘 이미 방문 처리됨
         }
 
-        if (today.minusDays(1).equals(this.lastVisitDate)) {
-            this.consecutiveAttendanceDays++; // 연속 출석
+        // 바로 직전 5시 기준일 날짜와 대조하여 연속 출석일 증가 처리
+        if (this.lastVisitDate != null && standardToday.minusDays(1).equals(this.lastVisitDate)) {
+            this.consecutiveAttendanceDays++;
         } else {
-            this.consecutiveAttendanceDays = 1; // 연속 출석 깨짐, 1일부터 다시
+            this.consecutiveAttendanceDays = 1; // 연속 출석 깨짐 또는 최초 유저
         }
 
-        this.lastVisitDate = today;
+        this.lastVisitDate = standardToday;
         return true;
     }
 

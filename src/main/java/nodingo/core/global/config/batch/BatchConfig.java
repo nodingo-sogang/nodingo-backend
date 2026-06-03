@@ -25,7 +25,7 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor; // 🌟 임포트 추가 완료!
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
@@ -42,7 +42,6 @@ public class BatchConfig {
     private final JobRepository jobRepository;
     private final MyJobListener myJobListener;
 
-    // 🌟 Executor 대신 AsyncConfig와 100% 일치하는 ThreadPoolTaskExecutor 타입으로 명확히 변경!
     private final ThreadPoolTaskExecutor batchQuizExecutor;
 
     @Bean

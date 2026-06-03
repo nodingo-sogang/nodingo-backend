@@ -15,7 +15,6 @@ import nodingo.core.news.repository.NewsRepository;
 import nodingo.core.user.domain.User;
 import nodingo.core.user.domain.UserScrap;
 import nodingo.core.user.repository.UserRepository;
-import nodingo.core.user.repository.UserScrapRepository;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,11 +30,7 @@ public class UserVectorService {
     private final UserRepository userRepository;
     private final NewsRepository newsRepository;
     private final KeywordRepository keywordRepository;
-    private final UserScrapRepository userScrapRepository;
 
-    /**
-     * 1. 초기 온보딩 임베딩 생성 (동기)
-     */
     @Transactional
     public void initUserEmbedding(User user, List<Keyword> selectedKeywords) {
         log.info(">>>> [UserVectorService] Starting initial embedding generation - userId: {}", user.getId());
@@ -65,9 +60,6 @@ public class UserVectorService {
         }
     }
 
-    /**
-     * 2. 뉴스 스크랩 시 임베딩 업데이트 (비동기)
-     */
     @Async("embeddingTaskExecutor")
     @Transactional
     public void updateUserEmbeddingAsync(Long userId, Long newsId) {
@@ -87,9 +79,6 @@ public class UserVectorService {
         }
     }
 
-    /**
-     * 3. 키워드 요약(그래프 노드) 스크랩 시 임베딩 업데이트 (비동기)
-     */
     @Async("embeddingTaskExecutor")
     @Transactional
     public void updateKeywordEmbeddingAsync(Long userId, Long keywordId) {
@@ -118,9 +107,6 @@ public class UserVectorService {
         return user;
     }
 
-    /**
-     * 공통 AI 서버 통신 및 유저 벡터 갱신 로직
-     */
     private void sendUpdateToAi(User user, UserEmbedding.Activity activity) {
         UserEmbedding.UpdateRequest req = UserEmbedding.UpdateRequest.builder()
                 .userId(user.getId())
