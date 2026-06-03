@@ -20,9 +20,10 @@ public class QuizResult {
     private String sourceOutlet;
     private LocalDate sourceDate;
     private String sourceUrl;
+    private boolean solved;
 
-    public static QuizResult from(Quiz quiz) {
-        String outlet = "뉴스 원문"; // 기본값
+    public static QuizResult from(Quiz quiz, boolean isSolved) {
+        String outlet = "뉴스 원문";
 
         if (quiz.getNews() != null && quiz.getNews().getUrl() != null) {
             outlet = extractOutlet(quiz.getNews().getUrl());
@@ -36,6 +37,7 @@ public class QuizResult {
                 .sourceDate(quiz.getNews() != null && quiz.getNews().getDateTimePub() != null
                         ? quiz.getNews().getDateTimePub().toLocalDate() : null)
                 .sourceUrl(quiz.getNews() != null ? quiz.getNews().getUrl() : null)
+                .solved(isSolved)
                 .build();
     }
 

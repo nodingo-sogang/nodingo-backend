@@ -32,14 +32,16 @@ public class QuizController {
 
     @Operation(
             summary = "퀴즈 목록 조회",
-            description = "특정 노드와 관련된 퀴즈 3개를 조회합니다. (정답 제외)"
+            description = "특정 노드와 관련된 퀴즈 3개를 조회합니다. 각 퀴즈별로 현재 유저의 풀이 여부(solved)를 함께 반환합니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "퀴즈 목록을 성공적으로 조회했습니다.")
     })
     @GetMapping
-    public ResponseEntity<ApiResponse<QuizListResponse>> getQuizzes(@PathVariable Long keywordId) {
-        QuizListResult result = quizQueryService.getQuizzesByKeyword(keywordId);
+    public ResponseEntity<ApiResponse<QuizListResponse>> getQuizzes(
+            @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
+            @PathVariable Long keywordId) {
+        QuizListResult result = quizQueryService.getQuizzesByKeyword(customOAuth2User.getUser().getId(), keywordId);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "퀴즈 목록을 성공적으로 조회했습니다.", QuizListResponse.from(result)));
     }
 

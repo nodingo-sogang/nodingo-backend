@@ -22,8 +22,8 @@ public class QuizResponse {
 
     @JsonFormat(pattern = "yyyy.MM.dd")
     private LocalDate sourceDate;
-
     private String sourceUrl;
+    private boolean solved;
 
     public static QuizResponse from(QuizResult result) {
         return QuizResponse.builder()
@@ -33,6 +33,7 @@ public class QuizResponse {
                 .sourceOutlet(result.getSourceOutlet())
                 .sourceDate(result.getSourceDate())
                 .sourceUrl(result.getSourceUrl())
+                .solved(result.isSolved())
                 .build();
     }
 }
