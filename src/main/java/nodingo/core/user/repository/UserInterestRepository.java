@@ -1,5 +1,6 @@
 package nodingo.core.user.repository;
 
+import nodingo.core.user.domain.InterestLevel;
 import nodingo.core.user.domain.UserInterest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -19,4 +20,8 @@ public interface UserInterestRepository extends JpaRepository<UserInterest, Long
 
     @Query("SELECT i.keyword.id FROM UserInterest i WHERE i.user.id = :userId")
     Set<Long> findScrappedKeywordIdsByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("delete from UserInterest u where u.user.id = :userId and u.level = :level")
+    void deleteByUserIdAndLevel(@Param("userId") Long userId, @Param("level") InterestLevel level);
 }

@@ -2,6 +2,7 @@ package nodingo.core.keyword.repository;
 
 import nodingo.core.keyword.domain.UserKeywordExplore;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,4 +13,8 @@ public interface UserKeywordExploreRepository extends JpaRepository<UserKeywordE
     Set<Long> findExploredKeywordIdsByUserId(@Param("userId") Long userId);
 
     boolean existsByUserIdAndKeywordId(Long userId, Long keywordId);
+
+    @Modifying
+    @Query("delete from UserQuizResult u where u.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }
