@@ -2,9 +2,11 @@ package nodingo.core.global.auth.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import nodingo.core.friendship.repository.FriendshipRepository;
 import nodingo.core.global.auth.client.NaverAuthClient;
 import nodingo.core.global.auth.dto.response.ReissueTokenResponse;
 import nodingo.core.global.auth.jwt.JwtTokenProvider;
+import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.keyword.repository.RecommendKeywordRepository;
 import nodingo.core.keyword.repository.UserKeywordExploreRepository;
 import nodingo.core.news.repository.RecommendNewsRepository;
@@ -42,6 +44,7 @@ public class AuthCommandService {
     private final RecommendKeywordRepository recommendKeywordRepository;
     private final NotificationSettingRepository notificationSettingRepository;
     private final UserInterestRepository userInterestRepository;
+    private final FriendshipRepository friendshipRepository;
 
     @Value("${spring.security.oauth2.client.registration.naver.client-id}")
     private String naverClientId;
@@ -136,8 +139,10 @@ public class AuthCommandService {
     private void deleteAllUserData(User user) {
         Long userId = user.getId();
 
-        user.getPersonas().clear();
-        userRepository.saveAndFlush(user);
+        User managedUser = getUserOrElseThrow(userId);
+
+        managedUser.getPersonas().clear();
+        userRepository.saveAndFlush(managedUser);
 
         userQuizResultRepository.deleteByUserId(userId);
         userKeywordExploreRepository.deleteByUserId(userId);
@@ -146,10 +151,16 @@ public class AuthCommandService {
         recommendNewsRepository.deleteByUserId(userId);
         recommendKeywordRepository.deleteByUserId(userId);
         notificationSettingRepository.deleteByUserId(userId);
+        friendshipRepository.deleteByRequesterIdOrReceiverId(userId, userId);
 
         userInterestRepository.deleteByUserIdAndLevel(userId, InterestLevel.SPECIFIC);
         userInterestRepository.deleteByUserIdAndLevel(userId, InterestLevel.MACRO);
 
-        userRepository.delete(user);
+        userRepository.delete(managedUser);
+    }
+
+    private User getUserOrElseThrow(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
     }
 }
