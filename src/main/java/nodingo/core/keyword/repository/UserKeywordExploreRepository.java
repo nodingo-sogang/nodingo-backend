@@ -15,6 +15,6 @@ public interface UserKeywordExploreRepository extends JpaRepository<UserKeywordE
     boolean existsByUserIdAndKeywordId(Long userId, Long keywordId);
 
     @Modifying
-    @Query("delete from UserQuizResult u where u.user.id = :userId")
+    @Query("delete from UserKeywordExplore u where u.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 }

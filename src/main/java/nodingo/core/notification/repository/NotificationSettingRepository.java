@@ -13,6 +13,6 @@ public interface NotificationSettingRepository extends JpaRepository<Notificatio
     Optional<NotificationSetting> findByUserId(Long userId);
 
     @Modifying
-    @Query("delete from UserQuizResult u where u.user.id = :userId")
+    @Query("delete from NotificationSetting n where n.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 }

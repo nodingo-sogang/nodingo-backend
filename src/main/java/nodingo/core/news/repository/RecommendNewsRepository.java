@@ -8,6 +8,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface RecommendNewsRepository extends JpaRepository<RecommendNews, Long> {
     @Modifying
-    @Query("delete from UserQuizResult u where u.user.id = :userId")
+    @Query("delete from RecommendNews r where r.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 }

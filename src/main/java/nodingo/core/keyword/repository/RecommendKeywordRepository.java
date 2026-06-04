@@ -23,6 +23,6 @@ public interface RecommendKeywordRepository extends JpaRepository<RecommendKeywo
     Optional<RecommendKeyword> findByUserIdAndKeywordIdAndTargetDate(Long userId, Long keywordId, LocalDate targetDate);
 
     @Modifying
-    @Query("delete from UserQuizResult u where u.user.id = :userId")
+    @Query("delete from RecommendKeyword r where r.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 }
