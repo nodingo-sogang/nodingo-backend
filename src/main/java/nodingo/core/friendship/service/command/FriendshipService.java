@@ -11,6 +11,7 @@ import nodingo.core.global.exception.friendship.SelfFriendRequestException;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.user.domain.User;
 import nodingo.core.user.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional
 public class FriendshipService {
-
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
 
@@ -40,7 +40,11 @@ public class FriendshipService {
 
         validateFriendRequest(requesterId, receiverId);
 
-        friendshipRepository.save(Friendship.createRequest(user, target));
+        try {
+            friendshipRepository.save(Friendship.createRequest(user, target));
+        } catch (DataIntegrityViolationException e) {
+            throw new AlreadyFriendException("이미 친구 관계이거나 요청이 대기 중입니다.");
+        }
     }
 
     private void validateFriendRequest(Long requesterId, Long receiverId) {
