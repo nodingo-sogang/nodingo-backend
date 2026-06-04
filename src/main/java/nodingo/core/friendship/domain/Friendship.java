@@ -15,7 +15,7 @@ import java.util.List;
 @Table(
         name = "friendships",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"requester_id", "receiver_id"})
+                @UniqueConstraint(columnNames = {"low_user_id", "high_user_id"})
         }
 )
 public class Friendship extends BaseTimeEntity {
@@ -32,6 +32,12 @@ public class Friendship extends BaseTimeEntity {
     @JoinColumn(name = "receiver_id", nullable = false)
     private User receiver;
 
+    @Column(name = "low_user_id", nullable = false)
+    private Long lowUserId;
+
+    @Column(name = "high_user_id", nullable = false)
+    private Long highUserId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FriendStatus status = FriendStatus.PENDING;
@@ -40,6 +46,8 @@ public class Friendship extends BaseTimeEntity {
         Friendship friendship = new Friendship();
         friendship.requester = requester;
         friendship.receiver = receiver;
+        friendship.lowUserId = Math.min(requester.getId(), receiver.getId());
+        friendship.highUserId = Math.max(requester.getId(), receiver.getId());
         friendship.status = FriendStatus.PENDING;
         return friendship;
     }
