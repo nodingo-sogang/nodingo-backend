@@ -51,6 +51,20 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 로그아웃되었습니다.", null));
     }
 
+    @Operation(summary = "회원 탈퇴", description = "네이버 연동 해제 및 본인 계정의 모든 데이터를 영구 삭제합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "탈퇴 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "유효하지 않은 토큰")
+    })
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<ApiResponse<Void>> withdraw(
+            @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
+            @RequestHeader(value = JwtConstants.HEADER_STRING) String authHeader) {
+        String accessToken = extractAccessToken(authHeader);
+        authCommandService.withdraw(customOAuth2User.getUser(), accessToken);
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "성공적으로 탈퇴 처리되었습니다.", null));
+    }
+
     private String extractAccessToken(String authHeader) {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7);

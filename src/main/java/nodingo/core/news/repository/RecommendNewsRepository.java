@@ -1,15 +1,12 @@
-package nodingo.core.quiz.repository;
+package nodingo.core.news.repository;
 
-import nodingo.core.quiz.domain.UserQuizResult;
-import nodingo.core.quiz.repository.custom.UserQuizResultRepositoryCustom;
+import nodingo.core.news.domain.RecommendNews;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface UserQuizResultRepository extends JpaRepository<UserQuizResult, Long>, UserQuizResultRepositoryCustom {
-    boolean existsByUserIdAndQuizId(Long userId, Long quizId);
-
+public interface RecommendNewsRepository extends JpaRepository<RecommendNews, Long> {
     @Modifying
     @Query("delete from UserQuizResult u where u.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);

@@ -58,6 +58,8 @@ public class User extends BaseTimeEntity implements UserDetails {
     @Column(nullable = false)
     private String providerId;
 
+    private String naverAccessToken;
+
     private String refreshToken;
 
     @JdbcTypeCode(SqlTypes.VECTOR)
@@ -154,12 +156,12 @@ public class User extends BaseTimeEntity implements UserDetails {
         this.nickname = nickname;
     }
 
-    public void updateRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
+    public void updateNaverAccessToken(String naverAccessToken) {
+        this.naverAccessToken = naverAccessToken;
     }
 
-    public void resetWeeklyXp() {
-        this.weeklyXp = 0;
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     public void completeOnboarding(List<UserPersona> personas) {

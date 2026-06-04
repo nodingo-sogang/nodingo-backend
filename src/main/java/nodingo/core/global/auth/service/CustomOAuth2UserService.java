@@ -32,19 +32,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             throw new OAuth2AuthenticationException("Unsupported provider: " + registrationId);
         }
 
-        try {
-            User user = processOAuth2User(oAuth2UserInfo);
-            return new CustomOAuth2User(user, oAuth2UserInfo.getAttributes());
-        } catch (Exception e) {
-            throw e;
-        }
+        String naverAccessToken = userRequest.getAccessToken().getTokenValue();
+
+        User user = processOAuth2User(oAuth2UserInfo, naverAccessToken);
+        return new CustomOAuth2User(user, oAuth2UserInfo.getAttributes());
     }
 
-    private User processOAuth2User(OAuth2UserInfo userInfo) {
+    private User processOAuth2User(OAuth2UserInfo userInfo, String naverAccessToken) {
         return userRepository.findByProviderAndProviderId(userInfo.getProvider(), userInfo.getProviderId())
                 .map(existingUser -> {
                     existingUser.updateInfo(userInfo.getName(), userInfo.getEmail());
                     existingUser.updateNickname(userInfo.getNickname());
+                    existingUser.updateNaverAccessToken(naverAccessToken);
                     return existingUser;
                 })
                 .orElseGet(() -> {
@@ -56,6 +55,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             userInfo.getEmail(),
                             userInfo.getNickname()
                     );
+                    newUser.updateNaverAccessToken(naverAccessToken);
                     return userRepository.save(newUser);
                 });
     }
