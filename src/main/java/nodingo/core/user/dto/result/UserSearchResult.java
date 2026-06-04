@@ -11,6 +11,7 @@ import nodingo.core.user.domain.User;
 public class UserSearchResult {
     private Long userId;
     private String nickname;
+    private String profileImageUrl;
     private Integer level;
     private String persona;
 
@@ -22,6 +23,7 @@ public class UserSearchResult {
         return UserSearchResult.builder()
                 .userId(user.getId())
                 .nickname(user.getNickname())
+                .profileImageUrl(user.getProfileImageUrl())
                 .level(user.getLevel())
                 .persona(personaStr)
                 .build();

@@ -18,6 +18,7 @@ public class UserGameResponse {
     private String tier;
     private Integer streak;
     private String nickname;
+    private String profileImageUrl;
     private Integer totalQuizzesSolved;
 
     public static UserGameResponse from(UserGameResult result) {
@@ -28,6 +29,7 @@ public class UserGameResponse {
                 .tier(result.getTier())
                 .streak(result.getStreak())
                 .nickname(result.getNickname())
+                .profileImageUrl(result.getProfileImageUrl())
                 .totalQuizzesSolved(result.getTotalQuizzesSolved())
                 .build();
     }
