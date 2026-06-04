@@ -4,7 +4,6 @@ package nodingo.core.user.service.query;
 import lombok.RequiredArgsConstructor;
 import nodingo.core.friendship.repository.FriendshipRepository;
 import nodingo.core.global.exception.user.UserNotFoundException;
-import nodingo.core.user.domain.RankingScope;
 import nodingo.core.user.domain.User;
 import nodingo.core.user.dto.request.RankingRequest;
 import nodingo.core.user.dto.result.RankingEntryResult;
@@ -31,13 +30,14 @@ public class UserRankingQueryService {
                 .findFirst()
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
-        String userOwnPersonaStr = loginUser.getPersonas().isEmpty() ? "NONE" : loginUser.getPersonas().get(0).name();
-        String redisKey = "ranking:weekly:" + userOwnPersonaStr;
-
-        if (request.getScope() == RankingScope.PERSONA) {
-            return getPersonaLeaderboard(loginUser, redisKey);
-        }
-        return getFriendLeaderboard(loginUser, redisKey);
+        return switch (request.getScope()) {
+            case PERSONA -> {
+                String userOwnPersonaStr = loginUser.getPersonas().isEmpty() ? "NONE" : loginUser.getPersonas().get(0).name();
+                String redisKey = "ranking:weekly:" + userOwnPersonaStr;
+                yield getPersonaLeaderboard(loginUser, redisKey);
+            }
+            case FRIENDS -> getFriendLeaderboard(loginUser);
+        };
     }
 
     private RankingListResult getPersonaLeaderboard(User loginUser, String redisKey) {
@@ -60,7 +60,6 @@ public class UserRankingQueryService {
             dbUsers.forEach(u -> userMap.put(u.getId(), u));
             targetUsers = userIds.stream().map(userMap::get).filter(Objects::nonNull).toList();
         } else {
-            String userOwnPersonaStr = loginUser.getPersonas().isEmpty() ? "NONE" : loginUser.getPersonas().get(0).name();
             targetUsers = userRepository.fetchLeaderboardByPersona(loginUser.getPersonas().get(0), 100, 0);
         }
 
@@ -78,7 +77,7 @@ public class UserRankingQueryService {
         return new RankingListResult("persona", "weekly", top10Entries, myEntry);
     }
 
-    private RankingListResult getFriendLeaderboard(User loginUser, String redisKey) {
+    private RankingListResult getFriendLeaderboard(User loginUser) {
         Long myUserId = loginUser.getId();
 
         List<Long> friendIds = new ArrayList<>(friendshipRepository.fetchFriendUserIds(myUserId));
@@ -116,7 +115,7 @@ public class UserRankingQueryService {
     }
 
     private RankingEntryResult fetchMyStickyEntryFromRedis(User loginUser, String redisKey) {
-        Long redisRank = redisTemplate.opsForZSet().reverseRank(redisKey, loginUser.toString());
+        Long redisRank = redisTemplate.opsForZSet().reverseRank(redisKey, loginUser.getId().toString());
         int realRank = (redisRank != null) ? (int) (redisRank + 1) : 999;
 
         return RankingEntryResult.from(loginUser, realRank, loginUser.getId());
