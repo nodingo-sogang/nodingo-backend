@@ -43,6 +43,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .map(existingUser -> {
                     existingUser.updateInfo(userInfo.getName(), userInfo.getEmail());
                     existingUser.updateNickname(userInfo.getNickname());
+                    existingUser.updateProfileImageUrl(userInfo.getProfileImageUrl());
                     existingUser.updateNaverAccessToken(naverAccessToken);
                     return existingUser;
                 })
@@ -53,7 +54,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             userInfo.getProvider() + "_" + userInfo.getProviderId(),
                             userInfo.getName(),
                             userInfo.getEmail(),
-                            userInfo.getNickname()
+                            userInfo.getNickname(),
+                            userInfo.getProfileImageUrl()
                     );
                     newUser.updateNaverAccessToken(naverAccessToken);
                     return userRepository.save(newUser);

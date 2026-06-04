@@ -52,6 +52,8 @@ public class User extends BaseTimeEntity implements UserDetails {
     @Column(nullable = false, unique = true)
     private String nickname;
 
+    private String profileImageUrl;
+
     @Column(nullable = false)
     private String provider;
 
@@ -131,7 +133,7 @@ public class User extends BaseTimeEntity implements UserDetails {
     // 팩토리 및 비즈니스 로직
     // ==========================================
 
-    public static User create(String provider, String providerId, String username, String name, String email, String nickname) {
+    public static User create(String provider, String providerId, String username, String name, String email, String nickname, String profileImageUrl) {
         User user = new User();
         user.provider = provider;
         user.providerId = providerId;
@@ -139,6 +141,7 @@ public class User extends BaseTimeEntity implements UserDetails {
         user.name = name;
         user.email = email;
         user.nickname = nickname;
+        user.profileImageUrl = profileImageUrl;
         user.embedding = emptyEmbedding();
         return user;
     }
@@ -154,6 +157,10 @@ public class User extends BaseTimeEntity implements UserDetails {
 
     public void updateNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
     }
 
     public void updateNaverAccessToken(String naverAccessToken) {

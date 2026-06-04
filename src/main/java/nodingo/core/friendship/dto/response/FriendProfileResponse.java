@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class FriendProfileResponse {
     private Long userId;
     private String nickname;
+    private String profileImageUrl;
     private Integer level;
     private String persona;
 
@@ -20,6 +21,7 @@ public class FriendProfileResponse {
         return FriendProfileResponse.builder()
                 .userId(result.getUserId())
                 .nickname(result.getNickname())
+                .profileImageUrl(result.getProfileImageUrl())
                 .level(result.getLevel())
                 .persona(result.getPersona())
                 .build();

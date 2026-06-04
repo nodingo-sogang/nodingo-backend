@@ -15,6 +15,7 @@ public class UserGameResult {
     private final String tier;
     private final Integer streak;
     private final String nickname;
+    private final String profileImageUrl;
     private final Integer totalQuizzesSolved;
 
     public static UserGameResult from(User user) {
@@ -25,6 +26,7 @@ public class UserGameResult {
                 .tier(user.getTier())
                 .streak(user.getConsecutiveAttendanceDays())
                 .nickname(user.getNickname())
+                .profileImageUrl(user.getProfileImageUrl())
                 .totalQuizzesSolved(user.getTotalQuizzesCompleted())
                 .build();
     }
