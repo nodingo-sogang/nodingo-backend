@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.graphPreview.GraphPreview;
-import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
 import nodingo.core.graph.dto.result.*;
 import nodingo.core.graph.service.command.NeighborSummaryService;
 import nodingo.core.keyword.domain.Keyword;
