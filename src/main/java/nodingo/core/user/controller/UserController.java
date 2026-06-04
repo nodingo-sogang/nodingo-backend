@@ -41,6 +41,7 @@ public class UserController {
     private final BadgeQueryService badgeQueryService;
     private final UserSearchService userSearchService;
     private final UserRankingQueryService userRankingQueryService;
+    private final UserProfileQueryService userProfileQueryService;
 
     @Operation(
             summary = "대분류(Persona) 목록 조회",
@@ -201,5 +202,22 @@ public class UserController {
         Long loginUserId = customOAuth2User.getUser().getId();
         RankingListResult result = userRankingQueryService.getRankingLeaderboard(loginUserId, request);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "랭킹 목록을 성공적으로 조회했습니다.", RankingListResponse.from(result)));
+    }
+
+    @Operation(
+            summary = "내 프로필 조회",
+            description = "로그인한 유저의 레벨, XP, 티어, 연속 출석일, 닉네임, 프로필 이미지를 조회합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "내 프로필을 성공적으로 조회했습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "온보딩이 완료되지 않은 경우")
+    })
+    @RequireOnboardingCompleted
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getMyProfile(
+            @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+        Long userId = customOAuth2User.getUser().getId();
+        UserProfileResult result = userProfileQueryService.getProfile(userId);
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "내 프로필을 성공적으로 조회했습니다.", UserProfileResponse.from(result)));
     }
 }
