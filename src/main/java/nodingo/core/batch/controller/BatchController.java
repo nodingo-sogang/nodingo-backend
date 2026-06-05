@@ -50,7 +50,8 @@ public class BatchController {
 
     @Operation(
             summary = "뉴스 수집 배치 수동 실행",
-            description = "새벽 5시 스케줄러와 별개로, 즉시 뉴스 데이터를 수집하고 요약하는 배치를 실행합니다."
+            description = "새벽 5시 자동 배치가 실패했을 때 수동으로 복구 실행하는 API입니다.\n" +
+                    "실행 시점과 무관하게 항상 전날 05:00 ~ 당일 04:59 범위의 뉴스를 수집합니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "배치 실행 성공")
