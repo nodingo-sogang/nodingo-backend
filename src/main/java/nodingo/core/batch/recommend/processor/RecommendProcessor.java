@@ -2,6 +2,7 @@ package nodingo.core.batch.recommend.processor;
 
 import lombok.RequiredArgsConstructor;
 import nodingo.core.ai.dto.keyword.KeywordRecommend;
+import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.service.command.KeywordRecommendService;
 import nodingo.core.keyword.service.query.KeywordRecommendQueryService;
@@ -25,7 +26,7 @@ public class RecommendProcessor {
     @Bean
     @StepScope
     public ItemProcessor<User, List<RecommendKeyword>> recommendItemProcessor() {
-        LocalDate targetDate = LocalDate.now();
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
         List<KeywordRecommend.CandidateKeyword> allCommonCandidates = queryService.getDailyCandidateKeywords(targetDate);
         return user -> commandService.generateRecommendationForUser(user, allCommonCandidates, targetDate);
     }

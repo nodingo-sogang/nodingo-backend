@@ -34,6 +34,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Slf4j
 @Tag(name = "Admin - Batch", description = "관리자용 배치 실행 API")
@@ -59,7 +60,7 @@ public class BatchController {
     public ResponseEntity<ApiResponse<Void>> triggerNewsJob() {
         try {
             JobParameters jobParameters = new JobParametersBuilder()
-                    .addLocalDateTime("requestTime", LocalDateTime.now())
+                    .addString("runId", UUID.randomUUID().toString())
                     .toJobParameters();
 
             jobLauncher.run(dailyNewsJob, jobParameters);

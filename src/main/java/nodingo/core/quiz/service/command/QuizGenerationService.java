@@ -6,6 +6,7 @@ import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
 import nodingo.core.ai.dto.quiz.QuizGenerate;
 import nodingo.core.global.exception.keyword.KeywordNotFoundException;
+import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.repository.KeywordRepository;
@@ -61,7 +62,7 @@ public class QuizGenerationService {
                         .build())
                 .relatedNews(newsInputs)
                 .relatedKeywords(Collections.emptyList())
-                .targetDate(LocalDate.now())
+                .targetDate(BatchDateUtil.getTargetDate())
                 .persona(keyword.getPersona() != null ? keyword.getPersona().name() : null)
                 .category(keyword.getParent() != null ? keyword.getParent().getWord() : null)
                 .build();

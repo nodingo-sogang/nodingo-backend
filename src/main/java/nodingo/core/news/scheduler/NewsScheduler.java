@@ -31,7 +31,6 @@ public class NewsScheduler {
         log.info(">>>> [Scheduler] Starting news collection batch at 5 AM.");
         try {
             JobParameters jobParameters = new JobParametersBuilder()
-                    .addLocalDateTime("requestTime", LocalDateTime.now())
                     .addString("runId", UUID.randomUUID().toString())
                     .toJobParameters();
 

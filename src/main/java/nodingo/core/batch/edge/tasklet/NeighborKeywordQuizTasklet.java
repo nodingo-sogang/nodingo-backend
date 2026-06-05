@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
+import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.repository.KeywordRepository;
@@ -18,7 +19,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -39,9 +39,7 @@ public class NeighborKeywordQuizTasklet implements Tasklet {
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
-        LocalDate targetDate = LocalTime.now().isBefore(LocalTime.of(5, 0))
-                ? LocalDate.now().minusDays(1)
-                : LocalDate.now();
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
 
         List<Keyword> neighborKeywords = keywordRepository.findNeighborKeywordsWithNews(targetDate);
         log.info(">>>> [NeighborQuiz] Parallel processing engine started - total neighbor keywords: {}", neighborKeywords.size());

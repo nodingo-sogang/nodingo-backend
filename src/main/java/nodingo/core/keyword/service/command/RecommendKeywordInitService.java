@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordRecommend;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
+import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.NewsKeywordRepository;
@@ -16,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -36,21 +36,21 @@ public class RecommendKeywordInitService {
 
     @Transactional
     public void initForNewUser(User user) {
-        LocalDate today = getToday();
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
 
-        if (recommendKeywordRepository.existsByUserIdAndTargetDate(user.getId(), today)) {
+        if (recommendKeywordRepository.existsByUserIdAndTargetDate(user.getId(), targetDate)) {
             log.info(">>>> [Onboarding] Recommend keywords already exist, skipping. userId={}", user.getId());
             return;
         }
 
-        List<KeywordRecommend.CandidateKeyword> candidates = queryService.getDailyCandidateKeywords(today);
+        List<KeywordRecommend.CandidateKeyword> candidates = queryService.getDailyCandidateKeywords(targetDate);
 
         if (candidates.isEmpty()) {
             log.warn(">>>> [Onboarding] No candidate keywords found for today. userId={}", user.getId());
             return;
         }
 
-        List<RecommendKeyword> recommendations = commandService.generateRecommendationForUser(user, candidates, today);
+        List<RecommendKeyword> recommendations = commandService.generateRecommendationForUser(user, candidates, targetDate);
 
         log.info(">>>> [Onboarding] 추천 키워드 요약 병렬 가동 - 대상 개수: {}", recommendations.size());
 
@@ -79,7 +79,7 @@ public class RecommendKeywordInitService {
                                     .build())
                             .relatedNews(newsInputs)
                             .relatedKeywords(Collections.emptyList())
-                            .targetDate(today)
+                            .targetDate(targetDate)
                             .build();
 
                     return CompletableFuture.runAsync(() -> {
@@ -105,11 +105,5 @@ public class RecommendKeywordInitService {
 
         log.info(">>>> [Onboarding] Successfully initialized recommend keywords for new user. userId={}, count={}",
                 user.getId(), recommendations.size());
-    }
-
-    private static LocalDate getToday() {
-        return LocalTime.now().isBefore(LocalTime.of(5, 0))
-                ? LocalDate.now().minusDays(1)
-                : LocalDate.now();
     }
 }

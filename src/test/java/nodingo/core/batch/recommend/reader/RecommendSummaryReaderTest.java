@@ -34,7 +34,7 @@ class RecommendSummaryReaderTest {
         LocalDateTime dummyRequestTime = LocalDateTime.of(2026, 5, 16, 10, 0, 0);
 
         // when
-        JpaPagingItemReader<RecommendKeyword> reader = recommendSummaryReader.recommendSummaryItemReader(dummyRequestTime);
+        JpaPagingItemReader<RecommendKeyword> reader = recommendSummaryReader.recommendSummaryItemReader();
 
         // then
         assertThat(reader).isNotNull();

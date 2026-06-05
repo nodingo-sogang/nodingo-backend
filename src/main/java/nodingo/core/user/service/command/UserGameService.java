@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 
 @Slf4j
 @Service
@@ -91,9 +92,7 @@ public class UserGameService {
     }
 
     private static LocalDate getStandardToday() {
-        return LocalTime.now().isBefore(LocalTime.of(5, 0))
-                ? LocalDate.now().minusDays(1)
-                : LocalDate.now();
+        return LocalDate.now(ZoneId.of("Asia/Seoul"));
     }
 
     private User getUserOrElseThrow(Long userId) {
