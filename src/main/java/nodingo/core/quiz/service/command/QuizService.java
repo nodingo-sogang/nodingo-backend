@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,9 +87,7 @@ public class QuizService {
     }
 
     private static LocalDate getStandardToday() {
-        return java.time.LocalTime.now().isBefore(java.time.LocalTime.of(5, 0))
-                ? LocalDate.now().minusDays(1)
-                : LocalDate.now();
+        return LocalDate.now(ZoneId.of("Asia/Seoul"));
     }
 
     private Quiz getQuizOrElseThrow(QuizSubmitCommand command) {

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
+import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,9 +34,7 @@ public class NeighborSummaryService {
     private final RecommendKeywordRepository recommendKeywordRepository;
 
     public Map<Long, String> generateSummarySync(List<Long> keywordIds) {
-        LocalDate targetDate = LocalTime.now().isBefore(LocalTime.of(5, 0))
-                ? LocalDate.now().minusDays(1)
-                : LocalDate.now();
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
 
         Map<Long, String> summaryMap = new HashMap<>();
 

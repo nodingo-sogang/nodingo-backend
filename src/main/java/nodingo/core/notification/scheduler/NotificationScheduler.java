@@ -33,9 +33,7 @@ public class NotificationScheduler {
         log.info("⏰Every hour on the hour! Starting the notification batch process.");
         try {
             JobParameters jobParameters = new JobParametersBuilder()
-                    .addLocalDateTime("requestTime", LocalDateTime.now())
                     .addString("runId", UUID.randomUUID().toString())
-                    .addString("targetDate", LocalDateTime.now().toLocalDate().toString())
                     .toJobParameters();
 
             jobLauncher.run(hourlyNotificationJob, jobParameters);

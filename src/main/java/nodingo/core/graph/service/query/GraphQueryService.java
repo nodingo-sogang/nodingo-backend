@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.graphPreview.GraphPreview;
+import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.graph.dto.result.*;
 import nodingo.core.graph.service.command.NeighborSummaryService;
 import nodingo.core.keyword.domain.Keyword;
@@ -24,7 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -45,7 +45,7 @@ public class GraphQueryService {
     private final NeighborSummaryService neighborSummaryService;
 
     public TabListResult getTodayTabs(Long userId) {
-        LocalDate targetDate = getTargetDate();
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
         List<RecommendKeyword> recommendKeywords = recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate);
         List<TabResult> tabs = getTabResults(recommendKeywords);
         return TabListResult.of(tabs);
@@ -147,7 +147,7 @@ public class GraphQueryService {
     }
 
     public NodeSummaryResult getNodeSummary(Long userId, Long nodeId, Pageable pageable) {
-        LocalDate targetDate = getTargetDate();
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
 
         RecommendKeyword recommendKeyword = recommendKeywordRepository
                 .findByUserIdAndKeywordIdAndTargetDate(userId, nodeId, targetDate)
@@ -241,12 +241,6 @@ public class GraphQueryService {
                 .toList();
     }
 
-    private static LocalDate getTargetDate() {
-        return LocalTime.now().isBefore(LocalTime.of(5, 0))
-                ? LocalDate.now().minusDays(1)
-                : LocalDate.now();
-    }
-
     private GraphDataResult buildGraphDataResult(
             GraphPreview.Response response,
             Set<Long> exploredIds,
@@ -290,7 +284,7 @@ public class GraphQueryService {
     }
 
     private Map<Long, RecommendKeyword> getRecommendKeywordMap(Long userId) {
-        LocalDate targetDate = getTargetDate();
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
 
         return recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate).stream()
                 .collect(Collectors.toMap(

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.relation.NewsRelationAnalysis;
+import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.news.domain.News;
 import nodingo.core.news.domain.NewsRelation;
 import nodingo.core.news.repository.NewsRelationRepository;
@@ -13,7 +14,6 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -34,15 +34,13 @@ public class NewsRelationTasklet implements Tasklet {
     private final NewsRelationRepository newsRelationRepository;
     private final AiClient aiClient;
 
-    @Value("#{jobParameters['requestTime']}")
-    private LocalDateTime requestTime;
-
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
         log.info(">>>> [Relation Tasklet] Starting news relation building process.");
 
-        LocalDateTime endTime = requestTime != null ? requestTime : LocalDateTime.now();
-        LocalDateTime startTime = endTime.minusHours(24);
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDateTime startTime = targetDate.atTime(5, 0, 0);
+        LocalDateTime endTime = targetDate.plusDays(1).atTime(4, 59, 59);
 
         List<News> targetNews = newsRepository.findAllByDateTimePubBetweenAndEmbeddingIsNotNull(startTime, endTime);
 

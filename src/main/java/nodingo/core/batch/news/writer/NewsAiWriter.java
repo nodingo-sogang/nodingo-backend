@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.newsBatch.NewsBatch;
+import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.KeywordRelation;
 import nodingo.core.keyword.repository.KeywordRelationRepository;
@@ -15,12 +16,9 @@ import nodingo.core.user.domain.UserPersona;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
 
 import java.util.function.Function;
@@ -37,9 +35,6 @@ public class NewsAiWriter implements ItemWriter<News> {
     private final KeywordRelationRepository keywordRelationRepository;
     private final AiClient aiClient;
 
-    @Value("#{jobParameters['requestTime']}")
-    private LocalDateTime requestTime;
-
     private static final int TOP_K_KEYWORDS = 5;
 
     @Override
@@ -47,13 +42,7 @@ public class NewsAiWriter implements ItemWriter<News> {
         List<News> chunkItems = new ArrayList<>(items.getItems());
         if (chunkItems.isEmpty()) return;
 
-        LocalDate targetDate = (requestTime != null)
-                ? (requestTime.toLocalTime().isBefore(LocalTime.of(5, 0))
-                ? requestTime.toLocalDate().minusDays(1)
-                : requestTime.toLocalDate())
-                : (LocalTime.now().isBefore(LocalTime.of(5, 0))
-                ? LocalDate.now().minusDays(1)
-                : LocalDate.now());
+        LocalDate targetDate = BatchDateUtil.getTargetDate();
 
         List<News> savedNews = newsRepository.saveAll(chunkItems);
         Map<Long, News> newsMap = savedNews.stream()
@@ -192,7 +181,6 @@ public class NewsAiWriter implements ItemWriter<News> {
 
                 if (source.getId().equals(target.getId())) continue;
 
-                // create()와 동일하게 id 순서 정렬 후 findByPair 호출
                 Long subjectId = source.getId() < target.getId() ? source.getId() : target.getId();
                 Long relatedId = source.getId() < target.getId() ? target.getId() : source.getId();
 
