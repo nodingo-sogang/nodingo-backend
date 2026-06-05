@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.newsBatch.NewsBatch;
+import nodingo.core.global.exception.ai.AiRateLimitException;
+import nodingo.core.global.metrics.MonitoringMetrics;
 import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.KeywordRelation;
@@ -34,6 +36,7 @@ public class NewsAiWriter implements ItemWriter<News> {
     private final KeywordRepository keywordRepository;
     private final KeywordRelationRepository keywordRelationRepository;
     private final AiClient aiClient;
+    private final MonitoringMetrics metrics;
 
     private static final int TOP_K_KEYWORDS = 5;
 
@@ -72,7 +75,19 @@ public class NewsAiWriter implements ItemWriter<News> {
         log.info(">>>> [Batch Writer] Requesting AI analysis for {} news articles. (Chunk size: {})",
                 savedNews.size(), items.size());
 
-        NewsBatch.Response aiResponse = aiClient.analyzeNewsBatch(request);
+        NewsBatch.Response aiResponse;
+        try {
+            metrics.recordAiCall("batch.analyzeNewsBatch");
+            aiResponse = aiClient.analyzeNewsBatch(request);
+        } catch (AiRateLimitException e) {
+            metrics.recordAiFailure("batch.analyzeNewsBatch", "RateLimitError");
+            log.error(">>>> [Batch Writer] OpenAI rate limit exceeded (429). chunkSize={}", items.size(), e);
+            throw e;
+        } catch (Exception e) {
+            metrics.recordAiFailure("batch.analyzeNewsBatch", e.getClass().getSimpleName());
+            log.error(">>>> [Batch Writer] AI analysis failed. chunkSize={}", items.size(), e);
+            throw e;
+        }
 
         for (NewsBatch.NewsAnalysisResult res : aiResponse.getNewsResults()) {
             News news = newsMap.get(res.getNewsId());

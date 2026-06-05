@@ -2,6 +2,7 @@ package nodingo.core.global.exception;
 
 import nodingo.core.global.dto.response.ApiResponse;
 import nodingo.core.global.exception.ai.AiIntegrationException;
+import nodingo.core.global.exception.ai.AiRateLimitException;
 import nodingo.core.global.exception.auth.InvalidTokenException;
 import nodingo.core.global.exception.auth.TokenNotFoundException;
 import nodingo.core.global.exception.friendship.AlreadyFriendException;
@@ -119,9 +120,16 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, e.getMessage());
     }
 
+    //AiIntergraionException
     @ExceptionHandler(AiIntegrationException.class)
     public ResponseEntity<ApiResponse<?>> handleAiIntegrationException(AiIntegrationException e) {
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "AI server processing failed: " + e.getMessage());
+    }
+
+    //AiRateLimitException
+    @ExceptionHandler(AiRateLimitException.class)
+    public ResponseEntity<ApiResponse<?>> handleAiRateLimitException(AiRateLimitException e) {
+        return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, "AI 호출 한도 초과: " + e.getMessage());
     }
 
 

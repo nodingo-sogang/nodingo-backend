@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.relation.NewsRelationAnalysis;
+import nodingo.core.global.exception.ai.AiRateLimitException;
+import nodingo.core.global.metrics.MonitoringMetrics;
 import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.news.domain.News;
 import nodingo.core.news.domain.NewsRelation;
@@ -33,6 +35,7 @@ public class NewsRelationTasklet implements Tasklet {
     private final NewsRepository newsRepository;
     private final NewsRelationRepository newsRelationRepository;
     private final AiClient aiClient;
+    private final MonitoringMetrics metrics;
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
@@ -45,7 +48,7 @@ public class NewsRelationTasklet implements Tasklet {
         List<News> targetNews = newsRepository.findAllByDateTimePubBetweenAndEmbeddingIsNotNull(startTime, endTime);
 
         if (targetNews.size() < 2) {
-            log.warn(">>>> [Relation Tasklet] Not enough news to compare today. (count: {})", targetNews.size());
+            log.warn(">>>> [Relation Tasklet] Not enough news to compare. count={}", targetNews.size());
             return RepeatStatus.FINISHED;
         }
 
@@ -66,6 +69,7 @@ public class NewsRelationTasklet implements Tasklet {
                 .build();
 
         try {
+            metrics.recordAiCall("batch.buildNewsRelations");
             NewsRelationAnalysis.Response response = aiClient.buildNewsRelations(request);
 
             if (response.getRelations() != null) {
@@ -73,26 +77,29 @@ public class NewsRelationTasklet implements Tasklet {
 
                 for (NewsRelationAnalysis.RelationResult res : response.getRelations()) {
                     if (res.getSubjectNewsId().equals(res.getRelatedNewsId())) {
-                        log.warn(">>>> [Relation Tasklet] SKIP: AI made news connected itself.(News ID: {})", res.getSubjectNewsId());
+                        log.warn(">>>> [Relation Tasklet] Skipping self-relation. newsId={}", res.getSubjectNewsId());
                         continue;
                     }
                     News subject = newsMap.get(res.getSubjectNewsId());
                     News related = newsMap.get(res.getRelatedNewsId());
 
                     if (subject != null && related != null) {
-                        NewsRelation relation = NewsRelation.create(subject, related, res.getRelationScore());
-                        relationsToSave.add(relation);
+                        relationsToSave.add(NewsRelation.create(subject, related, res.getRelationScore()));
                     }
                 }
 
                 if (!relationsToSave.isEmpty()) {
                     newsRelationRepository.saveAll(relationsToSave);
-                    log.info(">>>> [Relation Tasklet] Successfully saved {} relations to the DB.", relationsToSave.size());
+                    log.info(">>>> [Relation Tasklet] Saved {} relations.", relationsToSave.size());
                 }
             }
 
+        } catch (AiRateLimitException e) {
+            metrics.recordAiFailure("batch.buildNewsRelations", "RateLimitError");
+            log.error(">>>> [Relation Tasklet] OpenAI rate limit exceeded (429).", e);
         } catch (Exception e) {
-            log.error(">>>> [Relation Tasklet] AI server communication error: {}", e.getMessage(), e);
+            metrics.recordAiFailure("batch.buildNewsRelations", e.getClass().getSimpleName());
+            log.error(">>>> [Relation Tasklet] AI communication error: {}", e.getMessage(), e);
         }
 
         return RepeatStatus.FINISHED;

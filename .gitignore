@@ -38,7 +38,8 @@ out/
 
 .env
 
-# Docker database data
+grafana_data/
+prometheus_data/
 postgres_data/
 redis_data/
 

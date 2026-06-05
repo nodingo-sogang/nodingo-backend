@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
+import nodingo.core.global.exception.ai.AiRateLimitException;
+import nodingo.core.global.metrics.MonitoringMetrics;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.NewsKeywordRepository;
@@ -27,6 +29,7 @@ public class RecommendSummaryProcessor {
     private final AiClient aiClient;
     private final QuizGenerationService quizGenerationService;
     private final QuizRepository quizRepository;
+    private final MonitoringMetrics metrics;
 
     @Bean
     @StepScope
@@ -37,8 +40,7 @@ public class RecommendSummaryProcessor {
             }
 
             List<NewsKeyword> topNewsKeywords = newsKeywordRepository.findTopByKeywordId(
-                    recommendKeyword.getKeyword().getId(),
-                    3
+                    recommendKeyword.getKeyword().getId(), 3
             );
 
             if (topNewsKeywords.isEmpty()) {
@@ -54,32 +56,43 @@ public class RecommendSummaryProcessor {
                             .build())
                     .collect(Collectors.toList());
 
-            KeywordSummary.SummaryKeywordInput keywordInput = KeywordSummary.SummaryKeywordInput.builder()
-                    .keywordId(recommendKeyword.getKeyword().getId())
-                    .word(recommendKeyword.getKeyword().getWord())
-                    .build();
-
             KeywordSummary.Request aiRequest = KeywordSummary.Request.builder()
-                    .keyword(keywordInput)
+                    .keyword(KeywordSummary.SummaryKeywordInput.builder()
+                            .keywordId(recommendKeyword.getKeyword().getId())
+                            .word(recommendKeyword.getKeyword().getWord())
+                            .build())
                     .relatedNews(newsInputs)
                     .relatedKeywords(Collections.emptyList())
                     .targetDate(recommendKeyword.getTargetDate())
                     .build();
 
-            KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
-
-            recommendKeyword.updateSummary(aiResponse.getSummary());
-
-            log.info(">>>> [Batch-Processor] keyword '{}' AI briefing created successfully.", recommendKeyword.getKeyword().getWord());
-
             try {
-                Long keywordId = recommendKeyword.getKeyword().getId();
-                if (!quizRepository.existsByKeywordId(keywordId)) {
-                    log.info(">>>> [Batch-Processor] Generating quizzes for keyword '{}'", recommendKeyword.getKeyword().getWord());
-                    quizGenerationService.generateAndSaveQuizzes(keywordId, aiResponse.getSummary());
+                metrics.recordAiCall("batch.recommendSummary");
+                KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
+                recommendKeyword.updateSummary(aiResponse.getSummary());
+                log.info(">>>> [Batch Processor] Summary created. keyword={}", recommendKeyword.getKeyword().getWord());
+
+                try {
+                    Long keywordId = recommendKeyword.getKeyword().getId();
+                    if (!quizRepository.existsByKeywordId(keywordId)) {
+                        quizGenerationService.generateAndSaveQuizzes(keywordId, aiResponse.getSummary());
+                        log.info(">>>> [Batch Processor] Quiz generated. keyword={}", recommendKeyword.getKeyword().getWord());
+                    }
+                } catch (AiRateLimitException e) {
+                    metrics.recordAiFailure("batch.recommendQuiz", "RateLimitError");
+                    log.error(">>>> [Batch Processor] OpenAI rate limit exceeded (429) on quiz. keyword={}", recommendKeyword.getKeyword().getWord(), e);
+                } catch (Exception e) {
+                    log.error(">>>> [Batch Processor] Quiz generation failed. keyword={}", recommendKeyword.getKeyword().getWord(), e);
                 }
+
+            } catch (AiRateLimitException e) {
+                metrics.recordAiFailure("batch.recommendSummary", "RateLimitError");
+                log.error(">>>> [Batch Processor] OpenAI rate limit exceeded (429). keyword={}", recommendKeyword.getKeyword().getWord(), e);
+                return null;
             } catch (Exception e) {
-                log.error(">>>> [Batch-Processor] Quiz generation failed for keyword '{}'", recommendKeyword.getKeyword().getWord(), e);
+                metrics.recordAiFailure("batch.recommendSummary", e.getClass().getSimpleName());
+                log.error(">>>> [Batch Processor] AI summary failed. keyword={}", recommendKeyword.getKeyword().getWord(), e);
+                return null;
             }
 
             return recommendKeyword;

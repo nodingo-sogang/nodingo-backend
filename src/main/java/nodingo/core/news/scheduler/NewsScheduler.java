@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Slf4j
@@ -33,11 +32,10 @@ public class NewsScheduler {
             JobParameters jobParameters = new JobParametersBuilder()
                     .addString("runId", UUID.randomUUID().toString())
                     .toJobParameters();
-
             JobExecution jobExecution = jobLauncher.run(dailyNewsJob, jobParameters);
-            log.info(">>>> [Scheduler] Batch finished. status={}", jobExecution.getStatus());
+            log.info(">>>> [Scheduler] Batch submitted. status={}", jobExecution.getStatus());
         } catch (Exception e) {
-            log.error(">>>> [Scheduler] Exception occurred during batch execution", e);
+            log.error(">>>> [Scheduler] Failed to launch dailyNewsJob.", e);
         }
     }
 }
