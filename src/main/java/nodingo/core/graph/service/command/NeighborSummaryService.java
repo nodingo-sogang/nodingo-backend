@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
+import nodingo.core.global.metrics.MonitoringMetrics;
+import nodingo.core.global.exception.ai.AiRateLimitException;
 import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
@@ -32,10 +34,10 @@ public class NeighborSummaryService {
     private final QuizRepository quizRepository;
     private final AiClient aiClient;
     private final RecommendKeywordRepository recommendKeywordRepository;
+    private final MonitoringMetrics metrics;
 
     public Map<Long, String> generateSummarySync(List<Long> keywordIds) {
         LocalDate targetDate = BatchDateUtil.getTargetDate();
-
         Map<Long, String> summaryMap = new HashMap<>();
 
         for (Long keywordId : keywordIds) {
@@ -76,6 +78,7 @@ public class NeighborSummaryService {
                             .category(keyword.getParent() != null ? keyword.getParent().getWord() : null)
                             .build();
 
+                    metrics.recordAiCall("neighbor.summarize");
                     KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
                     summary = aiResponse.getSummary();
                 }
@@ -84,8 +87,11 @@ public class NeighborSummaryService {
                     summaryMap.put(keywordId, summary);
                 }
 
+            } catch (AiRateLimitException e) {
+                metrics.recordAiFailure("neighbor.summarize", "RateLimitError");
+                log.error(">>>> [NeighborSync] OpenAI rate limit exceeded (429). keywordId={}", keywordId, e);
             } catch (Exception e) {
-                log.error(">>>> [NeighborSync] Summary failed for keywordId: {}", keywordId, e);
+                log.error(">>>> [NeighborSync] Summary failed. keywordId={}", keywordId, e);
             }
         }
 
@@ -101,11 +107,15 @@ public class NeighborSummaryService {
                 if (summary == null) continue;
 
                 if (!quizRepository.existsByKeywordId(keywordId)) {
+                    metrics.recordAiCall("neighbor.generateQuiz");
                     quizGenerationService.generateAndSaveQuizzes(keywordId, summary);
-                    log.info(">>>> [NeighborAsync] Quiz generated for keywordId: {}", keywordId);
+                    log.info(">>>> [NeighborAsync] Quiz generated. keywordId={}", keywordId);
                 }
+            } catch (AiRateLimitException e) {
+                metrics.recordAiFailure("neighbor.generateQuiz", "RateLimitError");
+                log.error(">>>> [NeighborAsync] OpenAI rate limit exceeded (429). keywordId={}", keywordId, e);
             } catch (Exception e) {
-                log.error(">>>> [NeighborAsync] Quiz failed for keywordId: {}", keywordId, e);
+                log.error(">>>> [NeighborAsync] Quiz generation failed. keywordId={}", keywordId, e);
             }
         }
     }

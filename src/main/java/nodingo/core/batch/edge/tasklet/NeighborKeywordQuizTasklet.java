@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
+import nodingo.core.global.exception.ai.AiRateLimitException;
+import nodingo.core.global.metrics.MonitoringMetrics;
 import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
@@ -34,6 +36,7 @@ public class NeighborKeywordQuizTasklet implements Tasklet {
     private final QuizGenerationService quizGenerationService;
     private final AiClient aiClient;
     private final NewsKeywordRepository newsKeywordRepository;
+    private final MonitoringMetrics metrics;
 
     private final ThreadPoolTaskExecutor batchQuizExecutor;
 
@@ -42,7 +45,7 @@ public class NeighborKeywordQuizTasklet implements Tasklet {
         LocalDate targetDate = BatchDateUtil.getTargetDate();
 
         List<Keyword> neighborKeywords = keywordRepository.findNeighborKeywordsWithNews(targetDate);
-        log.info(">>>> [NeighborQuiz] Parallel processing engine started - total neighbor keywords: {}", neighborKeywords.size());
+        log.info(">>>> [NeighborQuiz] Started. total neighbor keywords={}", neighborKeywords.size());
 
         if (neighborKeywords.isEmpty()) {
             return RepeatStatus.FINISHED;
@@ -78,23 +81,25 @@ public class NeighborKeywordQuizTasklet implements Tasklet {
                                 .category(keyword.getParent() != null ? keyword.getParent().getWord() : null)
                                 .build();
 
+                        metrics.recordAiCall("batch.neighborQuiz.summarize");
                         KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
                         String summary = aiResponse.getSummary();
 
                         quizGenerationService.generateAndSaveQuizzes(keyword.getId(), summary);
-
-                        log.info(">>>> [NeighborQuiz] Quiz generation completed! Keyword: '{}' (Thread: {})",
+                        log.info(">>>> [NeighborQuiz] Quiz generated. keyword={}, thread={}",
                                 keyword.getWord(), Thread.currentThread().getName());
 
+                    } catch (AiRateLimitException e) {
+                        metrics.recordAiFailure("batch.neighborQuiz.summarize", "RateLimitError");
+                        log.error(">>>> [NeighborQuiz] OpenAI rate limit exceeded (429). keyword={}", keyword.getWord(), e);
                     } catch (Exception e) {
-                        log.error(">>>> [NeighborQuiz] Exception occurred while processing keyword. Keyword: {}", keyword.getWord(), e);
+                        log.error(">>>> [NeighborQuiz] Failed. keyword={}", keyword.getWord(), e);
                     }
                 }, batchQuizExecutor))
                 .toList();
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-        log.info(">>>> [NeighborQuiz] All neighbor keyword quiz generation parallel processing completed!");
+        log.info(">>>> [NeighborQuiz] All parallel processing completed.");
         return RepeatStatus.FINISHED;
     }
 }

@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordRecommend;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
+import nodingo.core.global.exception.ai.AiRateLimitException;
+import nodingo.core.global.metrics.MonitoringMetrics;
 import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
@@ -32,6 +34,7 @@ public class RecommendKeywordInitService {
     private final RecommendKeywordRepository recommendKeywordRepository;
     private final NewsKeywordRepository newsKeywordRepository;
     private final AiClient aiClient;
+    private final MonitoringMetrics metrics;
     private final ThreadPoolTaskExecutor onboardingExecutor;
 
     @Transactional
@@ -52,7 +55,7 @@ public class RecommendKeywordInitService {
 
         List<RecommendKeyword> recommendations = commandService.generateRecommendationForUser(user, candidates, targetDate);
 
-        log.info(">>>> [Onboarding] 추천 키워드 요약 병렬 가동 - 대상 개수: {}", recommendations.size());
+        log.info(">>>> [Onboarding] Starting parallel summary generation. count={}", recommendations.size());
 
         List<CompletableFuture<Void>> futures = recommendations.stream()
                 .map(rk -> {
@@ -84,15 +87,18 @@ public class RecommendKeywordInitService {
 
                     return CompletableFuture.runAsync(() -> {
                         try {
+                            metrics.recordAiCall("onboarding.recommendSummary");
                             KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
                             rk.updateSummary(aiResponse.getSummary());
-
-                            log.info(">>>> [Onboarding] Summary created for keyword: {} (Thread: {})",
+                            log.info(">>>> [Onboarding] Summary created. keyword={}, thread={}",
                                     rk.getKeyword().getWord(), Thread.currentThread().getName());
 
+                        } catch (AiRateLimitException e) {
+                            metrics.recordAiFailure("onboarding.recommendSummary", "RateLimitError");
+                            log.error(">>>> [Onboarding] OpenAI rate limit exceeded (429). keyword={}", rk.getKeyword().getWord(), e);
+                            rk.updateSummary("요약 생성 중 오류가 발생했습니다.");
                         } catch (Exception e) {
-                            log.warn(">>>> [Onboarding] Summary failed for keyword: {}, error: {}",
-                                    rk.getKeyword().getWord(), e.getMessage());
+                            log.warn(">>>> [Onboarding] Summary failed. keyword={}, error={}", rk.getKeyword().getWord(), e.getMessage());
                             rk.updateSummary("요약 생성 중 오류가 발생했습니다.");
                         }
                     }, onboardingExecutor);
@@ -102,8 +108,6 @@ public class RecommendKeywordInitService {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
         recommendKeywordRepository.saveAll(recommendations);
-
-        log.info(">>>> [Onboarding] Successfully initialized recommend keywords for new user. userId={}, count={}",
-                user.getId(), recommendations.size());
+        log.info(">>>> [Onboarding] Recommend keyword init completed. userId={}, count={}", user.getId(), recommendations.size());
     }
 }

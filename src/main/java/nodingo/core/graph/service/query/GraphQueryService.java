@@ -3,6 +3,8 @@ package nodingo.core.graph.service.query;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
+import nodingo.core.global.exception.ai.AiRateLimitException;
+import nodingo.core.global.metrics.MonitoringMetrics;
 import nodingo.core.ai.dto.graphPreview.GraphPreview;
 import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.graph.dto.result.*;
@@ -43,6 +45,7 @@ public class GraphQueryService {
     private final UserInterestRepository interestRepository;
     private final NewsKeywordRepository newsKeywordRepository;
     private final NeighborSummaryService neighborSummaryService;
+    private final MonitoringMetrics metrics;
 
     public TabListResult getTodayTabs(Long userId) {
         LocalDate targetDate = BatchDateUtil.getTargetDate();
@@ -59,7 +62,6 @@ public class GraphQueryService {
 
         if (centralKeywordId == null) {
             List<Long> topTabIds = getTopTabIds(recommendMap);
-
             targetRelations = topTabIds.stream()
                     .flatMap(id -> keywordRelationRepository
                             .findTopRelations(id, PageRequest.of(0, RELATED_KEYWORD_LIMIT))
@@ -72,21 +74,24 @@ public class GraphQueryService {
                     .getContent();
         }
 
-        log.info(">>>> [Graph Debug] centralKeywordId: {}, targetRelations size: {}", centralKeywordId, targetRelations.size());
+        log.info(">>>> [Graph] centralKeywordId={}, targetRelations size={}", centralKeywordId, targetRelations.size());
 
         GraphPreview.Request aiRequest = createAiRequest(centralKeywordId, targetRelations, recommendMap);
 
-        log.info(">>>> [Graph Debug] nodeIds sent to AI: {}",
-                aiRequest.getRecommendKeywords().stream()
-                        .map(GraphPreview.GraphRecommendKeywordInput::getKeywordId).toList());
-        log.info(">>>> [Graph Debug] relation pairs sent to AI: {}",
-                aiRequest.getKeywordRelations().stream()
-                        .map(r -> r.getSourceKeywordId() + "->" + r.getTargetKeywordId()).toList());
-
-        GraphPreview.Response aiResponse = aiClient.getGraphPreview(aiRequest);
-
-        log.info(">>>> [Graph Debug] aiResponse nodes: {}, edges: {}",
-                aiResponse.getNodes().size(), aiResponse.getEdges().size());
+        GraphPreview.Response aiResponse;
+        try {
+            metrics.recordAiCall("graph.preview");
+            aiResponse = aiClient.getGraphPreview(aiRequest);
+            log.info(">>>> [Graph] AI response nodes={}, edges={}", aiResponse.getNodes().size(), aiResponse.getEdges().size());
+        } catch (AiRateLimitException e) {
+            metrics.recordAiFailure("graph.preview", "RateLimitError");
+            log.error(">>>> [Graph] OpenAI rate limit exceeded (429). userId={}", userId, e);
+            throw e;
+        } catch (Exception e) {
+            metrics.recordAiFailure("graph.preview", e.getClass().getSimpleName());
+            log.error(">>>> [Graph] AI call failed. userId={}", userId, e);
+            throw e;
+        }
 
         GraphPreview.Response filteredResponse = filterUnknownNodes(aiResponse);
 

@@ -1,22 +1,15 @@
 package nodingo.core.notification.scheduler;
 
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import nodingo.core.notification.domain.NotificationSetting;
-import nodingo.core.notification.service.query.NotificationQueryService;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
 import java.util.UUID;
 
 @Slf4j
@@ -30,16 +23,15 @@ public class NotificationScheduler {
 
     @Scheduled(cron = "0 0 * * * *")
     public void runHourlyNotificationBatch() {
-        log.info("⏰Every hour on the hour! Starting the notification batch process.");
+        log.info(">>>> [Scheduler] Starting hourly notification batch.");
         try {
             JobParameters jobParameters = new JobParametersBuilder()
                     .addString("runId", UUID.randomUUID().toString())
                     .toJobParameters();
-
             jobLauncher.run(hourlyNotificationJob, jobParameters);
-
+            log.info(">>>> [Scheduler] Hourly notification batch submitted.");
         } catch (Exception e) {
-            log.error("❌ An error occurred while executing the HourlyNotificationJob batch : {}", e.getMessage(), e);
+            log.error(">>>> [Scheduler] Failed to launch hourlyNotificationJob.", e);
         }
     }
 }

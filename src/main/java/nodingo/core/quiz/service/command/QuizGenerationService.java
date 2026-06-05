@@ -5,7 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
 import nodingo.core.ai.dto.quiz.QuizGenerate;
+import nodingo.core.global.exception.ai.AiRateLimitException;
 import nodingo.core.global.exception.keyword.KeywordNotFoundException;
+import nodingo.core.global.metrics.MonitoringMetrics;
 import nodingo.core.global.util.BatchDateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
@@ -17,7 +19,6 @@ import nodingo.core.quiz.repository.QuizRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,10 +33,11 @@ public class QuizGenerationService {
     private final KeywordRepository keywordRepository;
     private final NewsKeywordRepository newsKeywordRepository;
     private final QuizRepository quizRepository;
+    private final MonitoringMetrics metrics;
 
     public void generateForOnboarding(Long keywordId, Long userId) {
         if (quizRepository.existsByKeywordId(keywordId)) {
-            log.info(">>>> [Quiz Gen] 퀴즈가 이미 존재하여 온보딩 생성을 스킵합니다. KeywordId: {}", keywordId);
+            log.info(">>>> [Quiz Gen] Quiz already exists, skipping onboarding generation. keywordId={}", keywordId);
             return;
         }
 
@@ -43,7 +45,7 @@ public class QuizGenerationService {
 
         List<NewsKeyword> topNewsKeywords = newsKeywordRepository.findTopByKeywordId(keywordId, 3);
         if (topNewsKeywords.isEmpty()) {
-            log.warn(">>>> [Quiz Gen] 관련 뉴스가 부족하여 요약/퀴즈 생성을 중단합니다. Keyword: {}", keyword.getWord());
+            log.warn(">>>> [Quiz Gen] Not enough news to generate quiz. keyword={}", keyword.getWord());
             return;
         }
 
@@ -67,11 +69,18 @@ public class QuizGenerationService {
                 .category(keyword.getParent() != null ? keyword.getParent().getWord() : null)
                 .build();
 
-        log.info(">>>> [Quiz Gen] Requesting AI to summarize Keyword for Onboarding: {}", keyword.getWord());
-        KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(summaryRequest);
-        String summary = aiResponse.getSummary();
-
-        generateAndSaveQuizzes(keywordId, summary);
+        try {
+            log.info(">>>> [Quiz Gen] Requesting AI summary for onboarding. keyword={}", keyword.getWord());
+            metrics.recordAiCall("quiz.summarize");
+            KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(summaryRequest);
+            generateAndSaveQuizzes(keywordId, aiResponse.getSummary());
+        } catch (AiRateLimitException e) {
+            metrics.recordAiFailure("quiz.summarize", "RateLimitError");
+            log.error(">>>> [Quiz Gen] OpenAI rate limit exceeded (429). keywordId={}", keywordId, e);
+        } catch (Exception e) {
+            metrics.recordAiFailure("quiz.summarize", e.getClass().getSimpleName());
+            log.error(">>>> [Quiz Gen] AI summary failed. keywordId={}", keywordId, e);
+        }
     }
 
     public void generateAndSaveQuizzes(Long keywordId, String keywordSummary) {
@@ -96,36 +105,45 @@ public class QuizGenerationService {
                 .numQuestions(3)
                 .build();
 
-        log.info(">>>> [Quiz Gen] Requesting AI to generate quizzes for Keyword: {}", keyword.getWord());
-        QuizGenerate.Response aiResponse = aiClient.generateQuizzes(aiRequest);
+        try {
+            log.info(">>>> [Quiz Gen] Requesting AI to generate quizzes. keyword={}", keyword.getWord());
+            metrics.recordAiCall("quiz.generate");
+            QuizGenerate.Response aiResponse = aiClient.generateQuizzes(aiRequest);
 
-        List<Quiz> quizzes = aiResponse.getQuizzes().stream().map(quizInfo -> {
-            News sourceNews = null;
-            if (quizInfo.getSourceNewsIds() != null && !quizInfo.getSourceNewsIds().isEmpty()) {
-                Long sourceNewsId = quizInfo.getSourceNewsIds().get(0);
-                sourceNews = relatedNews.stream()
-                        .filter(n -> n.getId().equals(sourceNewsId))
-                        .findFirst().orElse(null);
-            }
+            List<Quiz> quizzes = aiResponse.getQuizzes().stream().map(quizInfo -> {
+                News sourceNews = null;
+                if (quizInfo.getSourceNewsIds() != null && !quizInfo.getSourceNewsIds().isEmpty()) {
+                    Long sourceNewsId = quizInfo.getSourceNewsIds().get(0);
+                    sourceNews = relatedNews.stream()
+                            .filter(n -> n.getId().equals(sourceNewsId))
+                            .findFirst().orElse(null);
+                }
+                return Quiz.create(
+                        keyword,
+                        sourceNews,
+                        quizInfo.getQuestion(),
+                        quizInfo.getOptions().get(0),
+                        quizInfo.getOptions().get(1),
+                        quizInfo.getOptions().get(2),
+                        quizInfo.getOptions().get(3),
+                        quizInfo.getAnswerIndex()
+                );
+            }).collect(Collectors.toList());
 
-            return Quiz.create(
-                    keyword,
-                    sourceNews,
-                    quizInfo.getQuestion(),
-                    quizInfo.getOptions().get(0),
-                    quizInfo.getOptions().get(1),
-                    quizInfo.getOptions().get(2),
-                    quizInfo.getOptions().get(3),
-                    quizInfo.getAnswerIndex()
-            );
-        }).collect(Collectors.toList());
+            quizRepository.saveAll(quizzes);
+            log.info(">>>> [Quiz Gen] Successfully saved {} quizzes. keyword={}", quizzes.size(), keyword.getWord());
 
-        quizRepository.saveAll(quizzes);
-        log.info(">>>> [Quiz Gen] Successfully saved {} quizzes for Keyword: {}", quizzes.size(), keyword.getWord());
+        } catch (AiRateLimitException e) {
+            metrics.recordAiFailure("quiz.generate", "RateLimitError");
+            log.error(">>>> [Quiz Gen] OpenAI rate limit exceeded (429). keywordId={}", keywordId, e);
+        } catch (Exception e) {
+            metrics.recordAiFailure("quiz.generate", e.getClass().getSimpleName());
+            log.error(">>>> [Quiz Gen] Quiz generation failed. keywordId={}", keywordId, e);
+        }
     }
 
     private Keyword getKeywordOrElseThrow(Long keywordId) {
         return keywordRepository.findById(keywordId)
-                .orElseThrow(() -> new KeywordNotFoundException("키워드를 찾을 수 없습니다."));
+                .orElseThrow(() -> new KeywordNotFoundException("Keyword not found. keywordId=" + keywordId));
     }
 }

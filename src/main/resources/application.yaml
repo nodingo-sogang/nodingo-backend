@@ -123,6 +123,19 @@ app:
 
 FIREBASE_CONFIG_PATH: file:C:/likelion14th/core/core/src/main/resources/serviceAccountKey.json
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    prometheus:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
 logging:
   level:
     org.springframework.security: DEBUG
