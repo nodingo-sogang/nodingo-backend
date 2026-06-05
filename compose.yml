@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: nodingo
       POSTGRES_USER: nodingo_user
       POSTGRES_PASSWORD: "20200129"
+      TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
     ports:
       - "5432:5432"
     volumes:
@@ -26,6 +28,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: nodingo-redis
+    environment:
+      TZ: Asia/Seoul
     ports:
       - "6379:6379"
     volumes:
