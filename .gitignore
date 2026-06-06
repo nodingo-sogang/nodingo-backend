@@ -42,5 +42,6 @@ grafana_data/
 prometheus_data/
 postgres_data/
 redis_data/
+logs/
 
 src/main/resources/serviceAccountKey.json

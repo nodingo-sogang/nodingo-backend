@@ -130,7 +130,8 @@ public class NewsAiWriter implements ItemWriter<News> {
                     try {
                         persona = UserPersona.valueOf(personaStr.toUpperCase());
                     } catch (IllegalArgumentException e) {
-                        log.warn("Unknown persona received from AI: {}", personaStr);
+                        log.warn(">>>> [Batch Writer] Unknown persona received from AI: persona={}, newsId={}",
+                                personaStr, res.getNewsId());
                     }
                 }
 
@@ -195,7 +196,10 @@ public class NewsAiWriter implements ItemWriter<News> {
                     continue;
                 }
 
-                if (source.getId().equals(target.getId())) continue;
+                if (source.getId().equals(target.getId())) {
+                    log.warn(">>>> [Batch Writer] Skipping self-relation. keywordId={}", source.getId());
+                    continue;
+                }
 
                 Long subjectId = source.getId() < target.getId() ? source.getId() : target.getId();
                 Long relatedId = source.getId() < target.getId() ? target.getId() : source.getId();

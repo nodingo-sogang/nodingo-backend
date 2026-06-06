@@ -39,6 +39,9 @@ public class NewsFetchService {
                 throw new IllegalStateException("Article API response body is null");
             }
 
+            log.info(">>>> [NewsFetchService] Article API response - articles={}, pages={}",
+                    response.getArticles().getResults() != null ? response.getArticles().getResults().size() : 0,
+                    response.getArticles().getPages());
             return response;
 
         } catch (Exception e) {

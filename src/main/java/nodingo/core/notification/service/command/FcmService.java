@@ -25,10 +25,10 @@ public class FcmService {
                     .build();
 
             String response = FirebaseMessaging.getInstance().send(message);
-            log.info("FCM push successful! Firebase response: {}", response);
+            log.info(">>>> [FCM] Test message sent. response={}", response);
 
         } catch (Exception e) {
-            log.error("FCM push failed. Check token or firebase config: ", e);
+            log.error(">>>> [FCM] Test message failed. error: {}", e.getMessage(), e);
         }
     }
 
@@ -42,21 +42,18 @@ public class FcmService {
             BatchResponse response = FirebaseMessaging.getInstance().sendEach(messageList);
 
             if (response.getFailureCount() > 0) {
-                log.warn("FCM Batch partially failed. Success: {}, Failure: {}",
-                        response.getSuccessCount(), response.getFailureCount());
+                log.warn(">>>> [FCM] Batch partially failed. success={}, failure={}", response.getSuccessCount(), response.getFailureCount());
 
                 response.getResponses().forEach(res -> {
                     if (!res.isSuccessful()) {
-                        log.error("Individual push failed. ErrorCode: {}, Message: {}",
-                                res.getException().getMessagingErrorCode(),
-                                res.getException().getMessage());
+                        log.error(">>>> [FCM] Individual push failed. errorCode={}, error: {}", res.getException().getMessagingErrorCode(), res.getException().getMessage());
                     }
                 });
             } else {
-                log.info("Successfully sent all {} messages in this chunk.", response.getSuccessCount());
+                log.info(">>>> [FCM] Batch sent successfully. count={}", response.getSuccessCount());
             }
         } catch (Exception e) {
-            log.error("Critical error during FCM Batch send: ", e);
+            log.error(">>>> [FCM] Critical error during batch send. error: {}", e.getMessage(), e);
         }
     }
 }

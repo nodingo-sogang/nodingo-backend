@@ -38,6 +38,7 @@ public class KeywordRecommendService {
             LocalDate targetDate) {
 
         if (user.getEmbedding() == null || commonCandidateKeywords.isEmpty()) {
+            log.warn(">>>> [RecommendService] Skip: embedding or candidates is empty. userId={}", user.getId());
             return List.of();
         }
 
@@ -79,6 +80,8 @@ public class KeywordRecommendService {
                     ))
                     .collect(Collectors.toList());
 
+            log.info(">>>> [RecommendService] Recommendation saved. userId={}, count={}",
+                    user.getId(), recommendEntities.size());
             return recommendKeywordRepository.saveAll(recommendEntities);
 
         } catch (AiRateLimitException e) {

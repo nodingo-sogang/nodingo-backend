@@ -18,10 +18,9 @@ public class RecommendSummaryWriter {
     @Bean
     public ItemWriter<RecommendKeyword> recommendSummaryItemWriter() {
         return chunk -> {
-            if (!chunk.isEmpty()) {
-                recommendKeywordRepository.saveAll(chunk.getItems());
-            }
-            log.info(">>>> [Batch-Writer] Saved {} AI briefings", chunk.getItems().size());
+            if (chunk.isEmpty()) return;
+            recommendKeywordRepository.saveAll(chunk.getItems());
+            log.info(">>>> [Recommend Summary Writer] Saved {} AI briefings.", chunk.getItems().size());
         };
     }
 }

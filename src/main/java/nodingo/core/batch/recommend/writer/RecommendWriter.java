@@ -29,7 +29,7 @@ public class RecommendWriter {
                 recommendKeywordRepository.saveAll(allRecommendations);
             }
 
-            log.info(">>>> [Batch-Writer] Processed {} users / Saved {} keywords to DB",
+            log.info(">>>> [Recommend Writer] Processed {} users / Saved {} keywords to DB.",
                     chunk.getItems().size(), allRecommendations.size());
         };
     }

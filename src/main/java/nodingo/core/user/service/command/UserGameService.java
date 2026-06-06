@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZoneId;
 
 @Slf4j
@@ -28,11 +27,10 @@ public class UserGameService {
     private final UserRankingService userRankingService;
 
     public void checkAndRewardAttendance(Long userId) {
+        log.info(">>>> [Game] checkAndRewardAttendance. userId={}", userId);
         User user = getUserOrElseThrow(userId);
         LocalDate standardToday = getStandardToday();
-
         ifFirstVisit(user, standardToday);
-
         checkAndSaveExploreBadges(user);
     }
 
@@ -51,17 +49,16 @@ public class UserGameService {
             if (currentStreak >= 7) {
                 if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.ATTENDANCE_7)) {
                     userBadgeRepository.save(UserBadge.create(user, BadgeType.ATTENDANCE_7));
-                    log.info(">>>> [Badge Achievement] User {} earned 7-day Streak Badge!", user.getId());
+                    log.info(">>>> [Game] Badge earned. userId={}, badge=ATTENDANCE_7", user.getId());
                 }
             }
             if (currentStreak >= 30) {
                 if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.ATTENDANCE_30)) {
                     userBadgeRepository.save(UserBadge.create(user, BadgeType.ATTENDANCE_30));
-                    log.info(">>>> [Badge Achievement] User {} earned 30-day Streak Badge!", user.getId());
+                    log.info(">>>> [Game] Badge earned. userId={}, badge=ATTENDANCE_30", user.getId());
                 }
             }
-
-            log.info(">>>> [Attendance Reward] User {} checked in for date: {}. Earned {} XP. Current Streak: {}",
+            log.info(">>>> [Game] Attendance checked. userId={}, date={}, xp={}, streak={}",
                     user.getId(), standardToday, firstVisitXp, currentStreak);
         }
     }
@@ -72,21 +69,21 @@ public class UserGameService {
         if (exploredCount >= 1) {
             if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.FIRST_EXPLORE)) {
                 userBadgeRepository.save(UserBadge.create(user, BadgeType.FIRST_EXPLORE));
-                log.info(">>>> [Badge Achievement] User {} earned FIRST_EXPLORE Badge!", user.getId());
+                log.info(">>>> [Game] Badge earned. userId={}, badge=FIRST_EXPLORE", user.getId());
             }
         }
 
         if (exploredCount >= 10) {
             if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.EXPLORE_10)) {
                 userBadgeRepository.save(UserBadge.create(user, BadgeType.EXPLORE_10));
-                log.info(">>>> [Badge Achievement] User {} earned EXPLORE_10 Badge!", user.getId());
+                log.info(">>>> [Game] Badge earned. userId={}, badge=EXPLORE_10", user.getId());
             }
         }
 
         if (exploredCount >= 50) {
             if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.EXPLORE_50)) {
                 userBadgeRepository.save(UserBadge.create(user, BadgeType.EXPLORE_50));
-                log.info(">>>> [Badge Achievement] User {} earned EXPLORE_50 Badge!", user.getId());
+                log.info(">>>> [Game] Badge earned. userId={}, badge=EXPLORE_50", user.getId());
             }
         }
     }

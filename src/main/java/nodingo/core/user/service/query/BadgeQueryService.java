@@ -1,6 +1,7 @@
 package nodingo.core.user.service.query;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nodingo.core.user.domain.BadgeType;
 import nodingo.core.user.domain.UserBadge;
 import nodingo.core.user.dto.result.BadgeInfoResult;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -22,6 +24,7 @@ public class BadgeQueryService {
     private final UserBadgeRepository userBadgeRepository;
 
     public BadgeListResult getUserBadges(Long userId) {
+        log.info(">>>> [Badge Query] getUserBadges. userId={}", userId);
         List<UserBadge> earnedBadges = userBadgeRepository.findAllByUserId(userId);
 
         Map<BadgeType, UserBadge> earnedMap = earnedBadges.stream()
@@ -31,6 +34,8 @@ public class BadgeQueryService {
                 .map(type -> BadgeInfoResult.of(type, earnedMap.get(type)))
                 .toList();
 
+        log.info(">>>> [Badge Query] getUserBadges result. userId={}, earned={}, total={}",
+                userId, earnedBadges.size(), list.size());
         return new BadgeListResult(list);
     }
 }

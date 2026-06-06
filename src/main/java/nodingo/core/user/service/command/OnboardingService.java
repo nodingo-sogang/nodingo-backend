@@ -1,6 +1,7 @@
 package nodingo.core.user.service.command;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nodingo.core.global.exception.keyword.KeywordNotFoundException;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.keyword.domain.Keyword;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -31,6 +33,7 @@ public class OnboardingService {
     private final UserInterestRepository userInterestRepository;
 
     public List<Long> saveOnboardingInfo(SaveOnboardingCommand command) {
+        log.info(">>>> [Onboarding] saveOnboardingInfo. userId={}", command.getUserId());
         User user = getUser(command.getUserId());
         userInterestRepository.deleteTodayInterests(user.getId(), LocalDate.now());
         user.completeOnboarding(command.getPersonas());
@@ -48,6 +51,8 @@ public class OnboardingService {
             user.addInterest(specificKeyword, InterestLevel.SPECIFIC, macroInterest, LocalDate.now());
         }
 
+        log.info(">>>> [Onboarding] Onboarding info saved. userId={}, keywordCount={}",
+                command.getUserId(), allKeywordIds.size());
         return allKeywordIds;
     }
 

@@ -54,17 +54,16 @@ public class MyJobListener implements JobExecutionListener {
 
         if (jobExecution.getStatus() == BatchStatus.FAILED) {
             jobExecution.getAllFailureExceptions().forEach(e ->
-                    log.error(">>>> [ERROR] {} : {}", e.getClass().getSimpleName(), e.getMessage())
+                    log.error(">>>> [ERROR] {} : {}", e.getClass().getSimpleName(), e.getMessage(), e)
             );
         }
 
-        // 배치 완료 시 그래프 캐시 전체 삭제
         if (jobExecution.getStatus() == BatchStatus.COMPLETED
                 && "dailyNewsJob".equals(jobExecution.getJobInstance().getJobName())) {
             Cache graphCache = cacheManager.getCache("batch:graph");
             if (graphCache != null) {
                 graphCache.clear();
-                log.info(">>>> [Cache] batch:graph 캐시 전체 삭제 완료");
+                log.info(">>>> [Cache] batch:graph all cache are deleted");
             }
         }
 

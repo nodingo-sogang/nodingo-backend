@@ -1,5 +1,6 @@
 package nodingo.core.news.service.command;
 
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import nodingo.core.global.exception.news.NewsNotFoundException;
 import nodingo.core.global.exception.user.UserNotFoundException;
@@ -14,6 +15,7 @@ import nodingo.core.user.service.vector.UserVectorService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -25,14 +27,18 @@ public class NewsScrapService {
     private final UserVectorService userVectorService;
 
     public void addScrap(Long userId, Long newsId) {
+        log.info(">>>> [News Scrap] addScrap. userId={}, newsId={}", userId, newsId);
         ifScrapped(userId, newsId);
         createUserScrap(userId, newsId);
         userVectorService.updateUserEmbeddingAsync(userId, newsId);
+        log.info(">>>> [News Scrap] Scrap added. userId={}, newsId={}", userId, newsId);
     }
 
     public void removeScrap(Long userId, Long newsId) {
+        log.info(">>>> [News Scrap] removeScrap. userId={}, newsId={}", userId, newsId);
         UserScrap scrap = getOrElseThrow(userId, newsId);
         userScrapRepository.delete(scrap);
+        log.info(">>>> [News Scrap] Scrap removed. userId={}, newsId={}", userId, newsId);
     }
 
     private void createUserScrap(Long userId, Long newsId) {
@@ -52,6 +58,6 @@ public class NewsScrapService {
 
     private UserScrap getOrElseThrow(Long userId, Long newsId) {
         return userScrapRepository.findByUserIdAndNewsId(userId, newsId)
-            .orElseThrow(() -> new DuplicateScrapException("스크랩하지 않은 뉴스입니다."));
+                .orElseThrow(() -> new DuplicateScrapException("스크랩하지 않은 뉴스입니다."));
     }
 }

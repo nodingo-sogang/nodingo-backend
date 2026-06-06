@@ -50,6 +50,7 @@ public class GraphQueryService {
     public TabListResult getTodayTabs(Long userId) {
         LocalDate targetDate = BatchDateUtil.getTargetDate();
         List<RecommendKeyword> recommendKeywords = recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate);
+        log.info(">>>> [Graph] getTodayTabs. userId={}, targetDate={}, tabs={}", userId, targetDate, recommendKeywords.size());
         List<TabResult> tabs = getTabResults(recommendKeywords);
         return TabListResult.of(tabs);
     }
@@ -100,8 +101,10 @@ public class GraphQueryService {
                 .map(GraphPreview.GraphNode::getId)
                 .toList();
 
+
         Map<Long, String> generatedSummaries = new HashMap<>();
         if (!emptySummaryNodeIds.isEmpty()) {
+            log.info(">>>> [Graph] Generating summaries for {} empty nodes.", emptySummaryNodeIds.size());
             generatedSummaries = neighborSummaryService.generateSummarySync(emptySummaryNodeIds);
             neighborSummaryService.generateQuizAsync(emptySummaryNodeIds, generatedSummaries);
             filteredResponse = injectSummaries(filteredResponse, generatedSummaries);
@@ -152,6 +155,7 @@ public class GraphQueryService {
     }
 
     public NodeSummaryResult getNodeSummary(Long userId, Long nodeId, Pageable pageable) {
+        log.info(">>>> [Graph] getNodeSummary. userId={}, nodeId={}", userId, nodeId);
         LocalDate targetDate = BatchDateUtil.getTargetDate();
 
         RecommendKeyword recommendKeyword = recommendKeywordRepository

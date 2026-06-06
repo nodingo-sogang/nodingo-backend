@@ -98,7 +98,8 @@ public class RecommendKeywordInitService {
                             log.error(">>>> [Onboarding] OpenAI rate limit exceeded (429). keyword={}", rk.getKeyword().getWord(), e);
                             rk.updateSummary("요약 생성 중 오류가 발생했습니다.");
                         } catch (Exception e) {
-                            log.warn(">>>> [Onboarding] Summary failed. keyword={}, error={}", rk.getKeyword().getWord(), e.getMessage());
+                            catch (Exception e) {
+                                log.error(">>>> [Onboarding] Summary failed. keyword={}, error: {}", rk.getKeyword().getWord(), e.getMessage(), e);
                             rk.updateSummary("요약 생성 중 오류가 발생했습니다.");
                         }
                     }, onboardingExecutor);

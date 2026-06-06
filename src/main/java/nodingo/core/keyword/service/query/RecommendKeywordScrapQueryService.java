@@ -1,5 +1,6 @@
 package nodingo.core.keyword.service.query;
 
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import nodingo.core.global.util.SliceUtil;
 import nodingo.core.graph.dto.result.NodeSummaryResult;
@@ -15,16 +16,18 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.stream.Collectors;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class RecommendKeywordScrapQueryService {
 
     private final UserScrapRepository userScrapRepository;
-    
+
     public Slice<ScrapKeywordNodeResult> getScrapKeywordNodes(Long userId, int page) {
         Pageable pageable = PageRequest.of(page, 20);
         List<UserScrap> scraps = userScrapRepository.findKeywordScrapsByUserId(userId, page, 20);
+        log.info(">>>> [Scrap Query] getScrapKeywordNodes. userId={}, page={}, count={}", userId, page, scraps.size());
         List<ScrapKeywordNodeResult> content = scraps.stream()
                 .map(ScrapKeywordNodeResult::from)
                 .collect(Collectors.toList());
@@ -34,6 +37,7 @@ public class RecommendKeywordScrapQueryService {
     public Slice<NodeSummaryResult> getScrapKeywordSummaries(Long userId, int page) {
         Pageable pageable = PageRequest.of(page, 4);
         List<UserScrap> scraps = userScrapRepository.findKeywordScrapsByUserId(userId, page, 4);
+        log.info(">>>> [Scrap Query] getScrapKeywordSummaries. userId={}, page={}, count={}", userId, page, scraps.size());
         List<NodeSummaryResult> content = scraps.stream()
                 .map(scrap -> NodeSummaryResult.from(scrap.getRecommendKeyword()))
                 .collect(Collectors.toList());

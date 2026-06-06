@@ -58,13 +58,14 @@ public class UserVectorService {
                 throw new AiIntegrationException("Received empty embedding response from AI server.");
             }
             user.updateEmbedding(response.getEmbedding());
+            log.info(">>>> [UserVector] Embedding initialized. userId={}", user.getId());
         } catch (AiRateLimitException e) {
             metrics.recordAiFailure("userVector.initEmbedding", "RateLimitError");
             log.error(">>>> [UserVector] OpenAI rate limit exceeded (429). userId={}", user.getId(), e);
             throw new AiIntegrationException("Failed to initialize user embedding: rate limit exceeded.");
         } catch (Exception e) {
             metrics.recordAiFailure("userVector.initEmbedding", e.getClass().getSimpleName());
-            log.error(">>>> [UserVector] AI call failed. userId={}, error={}", user.getId(), e.getMessage());
+            log.error(">>>> [UserVector] AI call failed. userId={}, error: {}", user.getId(), e.getMessage(), e);
             throw new AiIntegrationException("Failed to initialize user embedding via AI server.");
         }
     }
@@ -86,7 +87,7 @@ public class UserVectorService {
             metrics.recordAiFailure("userVector.updateEmbedding.news", "RateLimitError");
             log.error(">>>> [UserVector] OpenAI rate limit exceeded (429). userId={}", userId, e);
         } catch (Exception e) {
-            log.error(">>>> [UserVector] News embedding update failed. userId={}, error={}", userId, e.getMessage());
+            log.error(">>>> [UserVector] News embedding update failed. userId={}, error: {}", userId, e.getMessage(), e);
         }
     }
 
@@ -104,7 +105,7 @@ public class UserVectorService {
             metrics.recordAiFailure("userVector.updateEmbedding.keyword", "RateLimitError");
             log.error(">>>> [UserVector] OpenAI rate limit exceeded (429). userId={}", userId, e);
         } catch (Exception e) {
-            log.error(">>>> [UserVector] Keyword embedding update failed. userId={}, error={}", userId, e.getMessage());
+            log.error(">>>> [UserVector] Keyword embedding update failed. userId={}, error: {}", userId, e.getMessage(), e);
         }
     }
 
@@ -129,7 +130,7 @@ public class UserVectorService {
             log.error(">>>> [UserVector] OpenAI rate limit exceeded (429). userId={}", user.getId(), e);
         } catch (Exception e) {
             metrics.recordAiFailure(feature, e.getClass().getSimpleName());
-            log.error(">>>> [UserVector] Embedding update failed. userId={}, error={}", user.getId(), e.getMessage());
+            log.error(">>>> [UserVector] Embedding update failed. userId={}, error: {}", user.getId(), e.getMessage(), e);
         }
     }
 

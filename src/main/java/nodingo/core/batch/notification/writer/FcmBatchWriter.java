@@ -20,11 +20,15 @@ public class FcmBatchWriter implements ItemWriter<Message> {
 
     @Override
     public void write(Chunk<? extends Message> chunk) {
-        List<? extends Message> items = chunk.getItems();
-        log.info("Batch writing {} FCM messages", items.size());
-        if (!items.isEmpty()) {
-            List<Message> messages = new ArrayList<>(items);
+        List<Message> messages = new ArrayList<>(chunk.getItems());
+        if (messages.isEmpty()) return;
+        log.info(">>>> [FCM Writer] Sending {} FCM messages.", messages.size());
+        try {
             fcmService.sendMessages(messages);
+            log.info(">>>> [FCM Writer] Sent successfully. count={}", messages.size());
+        } catch (Exception e) {
+            log.error(">>>> [FCM Writer] Failed to send FCM messages. count={}, error: {}", messages.size(), e.getMessage(), e);
+            throw e;
         }
     }
 }

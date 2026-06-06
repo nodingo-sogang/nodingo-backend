@@ -41,9 +41,10 @@ public class GraphService {
         boolean isLevelUp = user.addXp(exploreXp);
 
         userRankingService.updateWeeklyXp(user.getId(), exploreXp);
+        log.info(">>>> [Explore] userId={}, keywordId={}, xp={}", userId, keywordId, exploreXp);
 
         if (isLevelUp) {
-            log.info(">>>> [Level Up] User {} reached level {}", user.getId(), user.getLevel());
+            log.info(">>>> [Level Up] userId={} reached level={}", user.getId(), user.getLevel());
         }
     }
 

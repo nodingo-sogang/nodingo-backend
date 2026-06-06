@@ -29,8 +29,8 @@ public class UserRankingService {
 
         redisTemplate.opsForZSet().add(userPersonaKey, userId.toString(), user.getWeeklyXp());
 
-        log.info(">>>> [Redis Ranking Sync] User: {}, Persona: {}, Total WeeklyXP: {}",
-                user.getNickname(), userPersonaKey, user.getWeeklyXp());
+        log.info(">>>> [Ranking] updateWeeklyXp. userId={}, persona={}, weeklyXp={}",
+                userId, userPersonaKey, user.getWeeklyXp());
     }
 
     private User getUserOrElseThrow(Long userId) {
@@ -44,8 +44,10 @@ public class UserRankingService {
         userRepository.resetAllWeeklyXp();
 
         Set<String> keys = redisTemplate.keys("ranking:weekly:*");
+
         if (keys != null && !keys.isEmpty()) {
             redisTemplate.delete(keys);
+            log.info(">>>> [Ranking] Redis keys deleted. count={}", keys.size());
         }
 
         log.info(">>>> [Ranking Engine] Successfully cleared DB weekly XP and Redis Sorted Sets.");
