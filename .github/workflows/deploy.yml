@@ -57,18 +57,19 @@ jobs:
           envs: REGISTRY_URL, ECR_REPOSITORY, CONTAINER_NAME, AWS_REGION
           script: |
             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY_URL
-            
+
             docker stop $CONTAINER_NAME || true
             docker rm $CONTAINER_NAME || true
-            
+
             docker pull $REGISTRY_URL/$ECR_REPOSITORY:latest
-            
+
             docker run -d \
               --name $CONTAINER_NAME \
               -p 8080:8080 \
               -v /home/ubuntu/logs:/logs \
+              -v /home/ubuntu/nodingo-keys:/home/ubuntu/nodingo-keys \
               --restart always \
               --network ubuntu_default \
               $REGISTRY_URL/$ECR_REPOSITORY:latest
-            
+
             docker image prune -f
