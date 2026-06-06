@@ -1,5 +1,6 @@
 package nodingo.core.batch.news.writer;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.client.AiClient;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 @StepScope
 @RequiredArgsConstructor
 public class NewsAiWriter implements ItemWriter<News> {
-
+    private final EntityManager entityManager;
     private final NewsRepository newsRepository;
     private final KeywordRepository keywordRepository;
     private final KeywordRelationRepository keywordRelationRepository;
@@ -222,5 +223,7 @@ public class NewsAiWriter implements ItemWriter<News> {
                     skippedKeywordNotFoundCount,
                     duplicateRelationCount);
         }
+        entityManager.flush();
+        entityManager.clear();
     }
 }
