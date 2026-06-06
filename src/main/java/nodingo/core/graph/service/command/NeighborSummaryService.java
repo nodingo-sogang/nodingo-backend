@@ -37,6 +37,7 @@ public class NeighborSummaryService {
     private final MonitoringMetrics metrics;
 
     public Map<Long, String> generateSummarySync(List<Long> keywordIds) {
+        log.info(">>>> [NeighborSync] Started. keywordIds size={}", keywordIds.size());
         LocalDate targetDate = BatchDateUtil.getTargetDate();
         Map<Long, String> summaryMap = new HashMap<>();
 
@@ -53,6 +54,7 @@ public class NeighborSummaryService {
                 if (recommendKeyword.isPresent() && recommendKeyword.get().getSummary() != null
                         && !recommendKeyword.get().getSummary().isBlank()) {
                     summary = recommendKeyword.get().getSummary();
+                    log.debug(">>>> [NeighborSync] Cache hit. keywordId={}", keywordId);
                 } else {
                     List<NewsKeyword> topNewsKeywords = newsKeywordRepository
                             .findTopByKeywordId(keywordId, 3);
@@ -81,6 +83,7 @@ public class NeighborSummaryService {
                     metrics.recordAiCall("neighbor.summarize");
                     KeywordSummary.Response aiResponse = aiClient.summarizeKeywords(aiRequest);
                     summary = aiResponse.getSummary();
+                    log.info(">>>> [NeighborSync] AI summary generated. keywordId={}", keywordId);
                 }
 
                 if (summary != null) {
@@ -95,6 +98,7 @@ public class NeighborSummaryService {
             }
         }
 
+        log.info(">>>> [NeighborSync] Completed. requested={}, generated={}", keywordIds.size(), summaryMap.size());
         return summaryMap;
     }
 

@@ -25,7 +25,7 @@ public class NotificationItemReader extends JpaPagingItemReader<NotificationSett
     @PostConstruct
     public void init() {
         int currentHour = LocalDateTime.now().getHour();
-        log.info("Creating Reader for hour: {}", currentHour);
+        log.info(">>>> [Notification Reader] Initialized. targetHour={}", currentHour);
 
         this.setEntityManagerFactory(entityManagerFactory);
         this.setQueryString("SELECT ns FROM NotificationSetting ns JOIN FETCH ns.user WHERE ns.notifyHour = :hour");

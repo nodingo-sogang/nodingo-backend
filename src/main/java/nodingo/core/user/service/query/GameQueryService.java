@@ -1,6 +1,7 @@
 package nodingo.core.user.service.query;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nodingo.core.user.dto.result.GameProfileResult;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.user.domain.User;
@@ -8,6 +9,7 @@ import nodingo.core.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -15,6 +17,7 @@ public class GameQueryService {
     private final UserRepository userRepository;
 
     public GameProfileResult getMyProfile(Long userId) {
+        log.info(">>>> [Game Query] getMyProfile. userId={}", userId);
         User user = getUserOrElseThrow(userId);
         return GameProfileResult.from(user);
     }

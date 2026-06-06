@@ -38,6 +38,7 @@ public class QuizService {
     private final UserRankingService userRankingService;
 
     public QuizRewardResult submitQuiz(QuizSubmitCommand command) {
+        log.info(">>>> [Quiz] submitQuiz. userId={}, quizId={}", command.getUserId(), command.getQuizId());
         User user = getUserOrElseThrow(command);
         Quiz quiz = getQuizOrElseThrow(command);
 
@@ -53,6 +54,8 @@ public class QuizService {
             earnedXp = processCorrectAnswer(user, newBadges);
         }
 
+        log.info(">>>> [Quiz] submitQuiz result. userId={}, quizId={}, isCorrect={}, earnedXp={}",
+                command.getUserId(), command.getQuizId(), isCorrect, earnedXp);
         return QuizRewardResult.of(isCorrect, quiz.getAnswerIndex(), earnedXp, user, newBadges);
     }
 
@@ -61,9 +64,9 @@ public class QuizService {
 
         if (user.getTotalQuizzesCompleted() == 1) {
             newBadges.add("FIRST_QUIZ");
-
             if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.FIRST_QUIZ)) {
                 userBadgeRepository.save(UserBadge.create(user, BadgeType.FIRST_QUIZ));
+                log.info(">>>> [Quiz] Badge earned. userId={}, badge=FIRST_QUIZ", user.getId());
             }
         }
 

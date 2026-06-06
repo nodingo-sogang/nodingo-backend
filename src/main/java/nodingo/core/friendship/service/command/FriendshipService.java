@@ -14,7 +14,6 @@ import nodingo.core.user.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,12 +23,20 @@ public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
 
     public void sendFriendRequest(FriendActionCommand command) {
+        log.info(">>>> [Friendship] sendFriendRequest. requesterId={}, receiverId={}",
+                command.getMyUserId(), command.getTargetUserId());
         createFriendRequest(command.getMyUserId(), command.getTargetUserId());
+        log.info(">>>> [Friendship] Friend request sent. requesterId={}, receiverId={}",
+                command.getMyUserId(), command.getTargetUserId());
     }
 
     public void acceptFriendRequest(FriendActionCommand command) {
+        log.info(">>>> [Friendship] acceptFriendRequest. receiverId={}, requesterId={}",
+                command.getMyUserId(), command.getTargetUserId());
         Friendship friendship = findPendingFriendship(command);
         friendship.accept();
+        log.info(">>>> [Friendship] Friend request accepted. receiverId={}, requesterId={}",
+                command.getMyUserId(), command.getTargetUserId());
     }
 
     private void createFriendRequest(Long requesterId, Long receiverId) {
@@ -70,4 +77,4 @@ public class FriendshipService {
 
         return friendship;
     }
-}
+}}

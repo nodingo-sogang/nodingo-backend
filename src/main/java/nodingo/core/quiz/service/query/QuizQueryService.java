@@ -22,6 +22,7 @@ public class QuizQueryService {
     private final UserQuizResultRepository userQuizResultRepository;
 
     public QuizListResult getQuizzesByKeyword(Long userId, Long keywordId) {
+        log.info(">>>> [Quiz Query] getQuizzesByKeyword. userId={}, keywordId={}", userId, keywordId);
         List<Quiz> quizzes = quizRepository.findRecentQuizzes(keywordId);
         List<Long> quizIds = quizzes.stream().map(Quiz::getId).toList();
         List<Long> solvedQuizIds = userQuizResultRepository.findSolvedQuizIds(userId, quizIds);
@@ -33,6 +34,8 @@ public class QuizQueryService {
                 })
                 .toList();
 
+        log.info(">>>> [Quiz Query] getQuizzesByKeyword result. userId={}, keywordId={}, total={}, solved={}",
+                userId, keywordId, quizzes.size(), solvedQuizIds.size());
         return new QuizListResult(quizResults);
     }
 }

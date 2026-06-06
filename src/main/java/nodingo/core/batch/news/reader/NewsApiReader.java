@@ -35,8 +35,11 @@ public class NewsApiReader implements ItemReader<NewsApiItem> {
             return itemIterator.next();
         }
 
-        if (isEnd || currentPage > MAX_TEST_PAGES) {
-            log.info(">>>> [Batch Reader] Finished or reached max test pages.");
+        if (isEnd) {
+            return null;
+        }
+        if (currentPage > MAX_TEST_PAGES) {
+            log.info(">>>> [Batch Reader] Reached max test pages. limit={}", MAX_TEST_PAGES);
             return null;
         }
 

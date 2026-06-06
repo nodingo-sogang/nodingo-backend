@@ -2,6 +2,7 @@
 package nodingo.core.user.service.query;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nodingo.core.friendship.repository.FriendshipRepository;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.user.domain.User;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,6 +28,7 @@ public class UserRankingQueryService {
     private final RedisTemplate<String, String> redisTemplate;
 
     public RankingListResult getRankingLeaderboard(Long loginUserId, RankingRequest request) {
+        log.info(">>>> [Ranking Query] getRankingLeaderboard. userId={}, scope={}", loginUserId, request.getScope());
         User loginUser = userRepository.findAllByIdWithPersonas(List.of(loginUserId)).stream()
                 .findFirst()
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
@@ -50,16 +53,18 @@ public class UserRankingQueryService {
 
         if (rankedSet != null && !rankedSet.isEmpty()) {
             isRedisDataExist = true;
+            log.info(">>>> [Ranking Query] Persona leaderboard from Redis. userId={}, redisKey={}, count={}",
+                    myUserId, redisKey, rankedSet.size());
             List<Long> userIds = rankedSet.stream()
                     .map(tuple -> Long.parseLong(Objects.requireNonNull(tuple.getValue())))
                     .toList();
 
             List<User> dbUsers = userRepository.findAllByIdWithPersonas(userIds);
-
             Map<Long, User> userMap = new HashMap<>();
             dbUsers.forEach(u -> userMap.put(u.getId(), u));
             targetUsers = userIds.stream().map(userMap::get).filter(Objects::nonNull).toList();
         } else {
+            log.warn(">>>> [Ranking Query] Redis empty, fallback to DB. userId={}, redisKey={}", myUserId, redisKey);
             targetUsers = userRepository.fetchLeaderboardByPersona(loginUser.getPersonas().get(0), 100, 0);
         }
 
@@ -79,9 +84,9 @@ public class UserRankingQueryService {
 
     private RankingListResult getFriendLeaderboard(User loginUser) {
         Long myUserId = loginUser.getId();
-
         List<Long> friendIds = new ArrayList<>(friendshipRepository.fetchFriendUserIds(myUserId));
         friendIds.add(myUserId);
+        log.info(">>>> [Ranking Query] Friend leaderboard. userId={}, friendCount={}", myUserId, friendIds.size() - 1);
 
         List<User> targetUsers = userRepository.findAllByIdWithPersonas(friendIds).stream()
                 .sorted((u1, u2) -> Integer.compare(u2.getWeeklyXp(), u1.getWeeklyXp()))

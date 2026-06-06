@@ -32,6 +32,7 @@ public class RecommendKeywordScrapService {
     private final UserRankingService userRankingService;
 
     public void addScrap(Long userId, Long keywordId) {
+        log.info(">>>> [Scrap] addScrap. userId={}, keywordId={}", userId, keywordId);
         RecommendKeyword rk = getRk(userId, keywordId, "해당 키워드 추천 정보를 찾을 수 없습니다.");
 
         isAlreadyScrapped(userId, rk);
@@ -46,11 +47,13 @@ public class RecommendKeywordScrapService {
         user.addXp(scrapXp);
 
         userRankingService.updateWeeklyXp(user.getId(), scrapXp);
+        log.info(">>>> [Scrap] Scrap added. userId={}, keywordId={}, xp={}", userId, keywordId, scrapXp);
 
         userVectorService.updateKeywordEmbeddingAsync(userId, keywordId);
     }
 
     public void removeScrap(Long userId, Long keywordId) {
+        log.info(">>>> [Scrap] removeScrap. userId={}, keywordId={}", userId, keywordId);
         RecommendKeyword rk = getRk(userId, keywordId, "추천 정보를 찾을 수 없습니다.");
 
         UserScrap scrap = getScrap(userId, rk);
@@ -63,6 +66,7 @@ public class RecommendKeywordScrapService {
         user.removeXp(scrapXp);
 
         userRankingService.updateWeeklyXp(user.getId(), -scrapXp);
+        log.info(">>>> [Scrap] Scrap removed. userId={}, keywordId={}, xp={}", userId, keywordId, scrapXp);
 
         userScrapRepository.delete(scrap);
     }

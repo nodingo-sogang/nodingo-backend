@@ -28,9 +28,11 @@ public class NewsAiProcessor implements ItemProcessor<NewsApiItem, News> {
             return null;
         }
         if (newsRepository.existsByUri(articleUri)) {
+            log.debug(">>>> [Batch Processor] Skip: already exists. uri={}", articleUri);
             return null;
         }
         if (articleItem.getBody() == null || articleItem.getBody().isBlank()) {
+            log.warn(">>>> [Batch Processor] Skip: body is empty. uri={}", articleUri);
             return null;
         }
 

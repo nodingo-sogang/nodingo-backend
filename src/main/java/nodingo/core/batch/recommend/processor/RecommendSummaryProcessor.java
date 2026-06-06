@@ -36,6 +36,8 @@ public class RecommendSummaryProcessor {
     public ItemProcessor<RecommendKeyword, RecommendKeyword> recommendSummaryItemProcessor() {
         return recommendKeyword -> {
             if (recommendKeyword.getSummary() != null && !recommendKeyword.getSummary().isBlank()) {
+                log.debug(">>>> [Recommend Summary Processor] Skip: summary already exists. keyword={}",
+                        recommendKeyword.getKeyword().getWord());
                 return null;
             }
 
