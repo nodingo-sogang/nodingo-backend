@@ -67,9 +67,9 @@ jobs:
             docker run -d \
               --name $CONTAINER_NAME \
               -p 8080:8080 \
+              -v /home/ubuntu/logs:/logs \
               --restart always \
               --network ubuntu_default \
               $REGISTRY_URL/$ECR_REPOSITORY:latest
-              
             
             docker image prune -f
