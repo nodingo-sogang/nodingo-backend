@@ -36,7 +36,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
-          region: ${{ env.AWS_REGION }}  # ✅ ETIMEDOUT 방지
+          region: ${{ env.AWS_REGION }}
 
       - name: Docker Image 빌드 및 ECR Push (멀티 스테이지 자동 빌드)
         env:
