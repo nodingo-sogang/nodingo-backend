@@ -19,6 +19,9 @@ public class MyJobListener implements JobExecutionListener {
 
     private final CacheManager cacheManager;
 
+    private static final String DAILY_NEWS_JOB = "dailyNewsJob";
+    private static final String GRAPH_CACHE_NAME = "batch:graph";
+
     @Override
     public void beforeJob(JobExecution jobExecution) {
         log.info("""
@@ -34,40 +37,42 @@ public class MyJobListener implements JobExecutionListener {
 
     @Override
     public void afterJob(JobExecution jobExecution) {
+        String jobName = jobExecution.getJobInstance().getJobName();
+        BatchStatus status = jobExecution.getStatus();
+
         log.info("============================================================");
 
-        switch (jobExecution.getStatus()) {
-            case COMPLETED -> log.info(">>>> [Batch Job Completed]");
-            case FAILED -> log.error(">>>> [Batch Job Failed]");
-            default -> log.warn(">>>> [Batch Job Finished] Status: {}", jobExecution.getStatus());
+        switch (status) {
+            case COMPLETED -> log.info(">>>> [Batch Job Completed] - Job Name: {}", jobName);
+            case FAILED -> log.error(">>>> [Batch Job Failed] - Job Name: {}", jobName);
+            default -> log.warn(">>>> [Batch Job Finished] Status: {}, Job Name: {}", status, jobName);
         }
 
         Optional.ofNullable(jobExecution.getStartTime())
                 .ifPresent(start -> Optional.ofNullable(jobExecution.getEndTime())
                         .ifPresent(end -> {
                             Duration duration = Duration.between(start, end);
+                            log.info(">>>> End Time : {}", end);
                             log.info(">>>> Duration : {} min {} sec ({} ms)",
                                     duration.toMinutes(),
                                     duration.toSecondsPart(),
                                     duration.toMillis());
                         }));
 
-        if (jobExecution.getStatus() == BatchStatus.FAILED) {
+        if (status == BatchStatus.FAILED) {
             jobExecution.getAllFailureExceptions().forEach(e ->
-                    log.error(">>>> [ERROR] {} : {}", e.getClass().getSimpleName(), e.getMessage(), e)
+                    log.error(">>>> [Batch Job ERROR StackTrace]", e)
             );
         }
 
-        if (jobExecution.getStatus() == BatchStatus.COMPLETED
-                && "dailyNewsJob".equals(jobExecution.getJobInstance().getJobName())) {
-            Cache graphCache = cacheManager.getCache("batch:graph");
+        if (status == BatchStatus.COMPLETED && DAILY_NEWS_JOB.equals(jobName)) {
+            Cache graphCache = cacheManager.getCache(GRAPH_CACHE_NAME);
             if (graphCache != null) {
                 graphCache.clear();
-                log.info(">>>> [Cache] batch:graph all cache are deleted");
+                log.info(">>>> [Cache] '{}' all cache are deleted successfully.", GRAPH_CACHE_NAME);
             }
         }
 
-        log.info(">>>> End Time : {}", jobExecution.getEndTime());
         log.info("============================================================");
     }
 }
