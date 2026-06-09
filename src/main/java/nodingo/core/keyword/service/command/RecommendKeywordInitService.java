@@ -7,7 +7,7 @@ import nodingo.core.ai.dto.keyword.KeywordRecommend;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
 import nodingo.core.global.exception.ai.AiRateLimitException;
 import nodingo.core.global.metrics.MonitoringMetrics;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.NewsKeywordRepository;
@@ -39,7 +39,7 @@ public class RecommendKeywordInitService {
 
     @Transactional
     public void initForNewUser(User user) {
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getApiTargetDate();
 
         if (recommendKeywordRepository.existsByUserIdAndTargetDate(user.getId(), targetDate)) {
             log.info(">>>> [Onboarding] Recommend keywords already exist, skipping. userId={}", user.getId());

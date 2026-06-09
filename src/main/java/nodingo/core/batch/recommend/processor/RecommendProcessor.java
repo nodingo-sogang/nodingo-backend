@@ -3,7 +3,7 @@ package nodingo.core.batch.recommend.processor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.ai.dto.keyword.KeywordRecommend;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.service.command.KeywordRecommendService;
 import nodingo.core.keyword.service.query.KeywordRecommendQueryService;
@@ -28,7 +28,7 @@ public class RecommendProcessor {
     @Bean
     @StepScope
     public ItemProcessor<User, List<RecommendKeyword>> recommendItemProcessor() {
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
         List<KeywordRecommend.CandidateKeyword> allCommonCandidates = queryService.getDailyCandidateKeywords(targetDate);
         log.info(">>>> [Recommend Processor] Initialized. targetDate={}, candidates={}",
                 targetDate, allCommonCandidates.size());
