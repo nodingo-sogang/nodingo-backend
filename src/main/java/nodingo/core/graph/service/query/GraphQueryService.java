@@ -48,7 +48,7 @@ public class GraphQueryService {
     private final MonitoringMetrics metrics;
 
     public TabListResult getTodayTabs(Long userId) {
-        LocalDate targetDate = DateUtil.getApiTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
         List<RecommendKeyword> recommendKeywords = recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate);
         log.info(">>>> [Graph] getTodayTabs. userId={}, targetDate={}, tabs={}", userId, targetDate, recommendKeywords.size());
         List<TabResult> tabs = getTabResults(recommendKeywords);
@@ -156,7 +156,7 @@ public class GraphQueryService {
 
     public NodeSummaryResult getNodeSummary(Long userId, Long nodeId, Pageable pageable) {
         log.info(">>>> [Graph] getNodeSummary. userId={}, nodeId={}", userId, nodeId);
-        LocalDate targetDate = DateUtil.getApiTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
 
         RecommendKeyword recommendKeyword = recommendKeywordRepository
                 .findByUserIdAndKeywordIdAndTargetDate(userId, nodeId, targetDate)
@@ -293,7 +293,7 @@ public class GraphQueryService {
     }
 
     private Map<Long, RecommendKeyword> getRecommendKeywordMap(Long userId) {
-        LocalDate targetDate = DateUtil.getApiTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
 
         return recommendKeywordRepository.findTabsByUserAndDate(userId, targetDate).stream()
                 .collect(Collectors.toMap(

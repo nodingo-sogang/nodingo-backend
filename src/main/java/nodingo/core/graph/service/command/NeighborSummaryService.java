@@ -38,7 +38,7 @@ public class NeighborSummaryService {
 
     public Map<Long, String> generateSummarySync(List<Long> keywordIds) {
         log.info(">>>> [NeighborSync] Started. keywordIds size={}", keywordIds.size());
-        LocalDate targetDate = DateUtil.getApiTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
         Map<Long, String> summaryMap = new HashMap<>();
 
         for (Long keywordId : keywordIds) {

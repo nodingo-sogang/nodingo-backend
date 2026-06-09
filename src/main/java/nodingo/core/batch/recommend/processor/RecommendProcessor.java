@@ -28,7 +28,7 @@ public class RecommendProcessor {
     @Bean
     @StepScope
     public ItemProcessor<User, List<RecommendKeyword>> recommendItemProcessor() {
-        LocalDate targetDate = DateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getNow();
         List<KeywordRecommend.CandidateKeyword> allCommonCandidates = queryService.getDailyCandidateKeywords(targetDate);
         log.info(">>>> [Recommend Processor] Initialized. targetDate={}, candidates={}",
                 targetDate, allCommonCandidates.size());
