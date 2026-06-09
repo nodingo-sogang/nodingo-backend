@@ -17,6 +17,7 @@ import nodingo.core.news.domain.News;
 import nodingo.core.quiz.domain.Quiz;
 import nodingo.core.quiz.repository.QuizRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
@@ -25,7 +26,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class QuizGenerationService {
 
@@ -35,6 +35,7 @@ public class QuizGenerationService {
     private final QuizRepository quizRepository;
     private final MonitoringMetrics metrics;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void generateForOnboarding(Long keywordId, Long userId) {
         if (quizRepository.existsByKeywordId(keywordId)) {
             log.info(">>>> [Quiz Gen] Quiz already exists, skipping onboarding generation. keywordId={}", keywordId);
@@ -83,6 +84,7 @@ public class QuizGenerationService {
         }
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void generateAndSaveQuizzes(Long keywordId, String keywordSummary) {
         Keyword keyword = getKeywordOrElseThrow(keywordId);
 
