@@ -91,7 +91,7 @@ public class UserVectorService {
         }
     }
 
-    @Async("embeddingTaskExecutor")
+    @Async("userScrapEmbeddingExecutor")
     @Transactional
     public void updateKeywordEmbeddingAsync(Long userId, Long keywordId) {
         try {
