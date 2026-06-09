@@ -139,7 +139,15 @@ class UserVectorServiceTest {
 
     // --- Helper Methods ---
     private User createMockUser() {
-        User user = User.create("google", "sub-123", "sungmin", "성민", "test@test.com");
+        User user = User.create(
+                "google",
+                "sub-123",
+                "sungmin",
+                "성민",
+                "test@test.com",
+                "성민닉네임",
+                "https://nodingo.com/profile.png"
+        );
         user.updateEmbedding(oldEmbedding);
         return user;
     }
