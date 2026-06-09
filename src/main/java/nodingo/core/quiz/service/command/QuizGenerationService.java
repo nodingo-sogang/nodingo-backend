@@ -64,7 +64,7 @@ public class QuizGenerationService {
                         .build())
                 .relatedNews(newsInputs)
                 .relatedKeywords(Collections.emptyList())
-                .targetDate(DateUtil.getApiTargetDate())
+                .targetDate(DateUtil.getNow())
                 .persona(keyword.getPersona() != null ? keyword.getPersona().name() : null)
                 .category(keyword.getParent() != null ? keyword.getParent().getWord() : null)
                 .build();

@@ -24,7 +24,7 @@ public class RecommendSummaryReader {
     @Bean
     @StepScope
     public JpaPagingItemReader<RecommendKeyword> recommendSummaryItemReader() {
-        LocalDate targetDate = DateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getNow();
         log.info(">>>> [Recommend Summary Reader] Initialized. targetDate={}", targetDate);
 
         return new JpaPagingItemReaderBuilder<RecommendKeyword>()

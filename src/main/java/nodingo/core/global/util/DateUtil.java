@@ -6,18 +6,20 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 
 public class DateUtil {
-    private static final LocalTime BATCH_COMPLETE_TIME = LocalTime.of(6, 0);
 
-    public static LocalDate getTargetDate() {
-        return LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1);
+    private DateUtil() {}
+
+    public static LocalDate getNow() {
+        return LocalDate.now(ZoneId.of("Asia/Seoul"));
     }
 
-    public static LocalDate getApiTargetDate() {
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+    public static LocalDate getTargetDate() {
+        return LocalTime.now(ZoneId.of("Asia/Seoul")).isBefore(LocalTime.of(5, 0))
+                ? LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1)
+                : LocalDate.now(ZoneId.of("Asia/Seoul"));
+    }
 
-        if (now.toLocalTime().isBefore(BATCH_COMPLETE_TIME)) {
-            return now.toLocalDate().minusDays(1);
-        }
-        return now.toLocalDate();
+    public static LocalDate getMinusOneDay() {
+        return LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1);
     }
 }

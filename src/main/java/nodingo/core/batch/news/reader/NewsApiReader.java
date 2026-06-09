@@ -43,7 +43,7 @@ public class NewsApiReader implements ItemReader<NewsApiItem> {
             return null;
         }
 
-        LocalDate targetDate = DateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getMinusOneDay();
 
         NewsApiResponse response = newsFetchService.fetchNews(targetDate, currentPage);
 

@@ -41,7 +41,7 @@ public class NewsRelationTasklet implements Tasklet {
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
         log.info(">>>> [Relation Tasklet] Starting news relation building process.");
 
-        LocalDate targetDate = DateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getMinusOneDay();
         LocalDateTime startTime = targetDate.atTime(5, 0, 0);
         LocalDateTime endTime = targetDate.plusDays(1).atTime(4, 59, 59);
 

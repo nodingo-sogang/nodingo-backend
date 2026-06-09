@@ -39,7 +39,7 @@ public class RecommendKeywordInitService {
 
     @Transactional
     public void initForNewUser(User user) {
-        LocalDate targetDate = DateUtil.getApiTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
 
         if (recommendKeywordRepository.existsByUserIdAndTargetDate(user.getId(), targetDate)) {
             log.info(">>>> [Onboarding] Recommend keywords already exist, skipping. userId={}", user.getId());
