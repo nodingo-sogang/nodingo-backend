@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import nodingo.core.batch.dto.article.NewsApiItem;
 import nodingo.core.batch.dto.article.NewsApiResponse;
 import nodingo.core.batch.service.query.NewsFetchService;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.stereotype.Component;
@@ -43,7 +43,7 @@ public class NewsApiReader implements ItemReader<NewsApiItem> {
             return null;
         }
 
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
 
         NewsApiResponse response = newsFetchService.fetchNews(targetDate, currentPage);
 

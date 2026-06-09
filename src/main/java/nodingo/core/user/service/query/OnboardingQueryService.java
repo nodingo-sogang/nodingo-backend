@@ -3,7 +3,7 @@ package nodingo.core.user.service.query;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.global.exception.user.UserNotFoundException;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.keyword.repository.KeywordRepository;
 import nodingo.core.user.domain.OnboardingStatus;
 import nodingo.core.user.domain.UserPersona;
@@ -35,7 +35,7 @@ public class OnboardingQueryService {
     }
 
     public KeywordListResult getMacroKeywords(UserPersona persona) {
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getApiTargetDate();
         log.info(">>>> [Onboarding Query] getMacroKeywords. persona={}, targetDate={}", persona, targetDate);
         List<KeywordResult> results = keywordRepository
                 .findMacrosForOnboarding(persona, targetDate, KEYWORD_LIMIT)
@@ -56,7 +56,7 @@ public class OnboardingQueryService {
     }
 
     public KeywordListResult getSpecificKeywords(Long macroId) {
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getApiTargetDate();
         log.info(">>>> [Onboarding Query] getSpecificKeywords. macroId={}, targetDate={}", macroId, targetDate);
         List<KeywordResult> results = keywordRepository
                 .findSpecificsForOnboarding(macroId, targetDate, KEYWORD_LIMIT)

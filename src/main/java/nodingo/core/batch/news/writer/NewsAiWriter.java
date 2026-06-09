@@ -7,7 +7,7 @@ import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.newsBatch.NewsBatch;
 import nodingo.core.global.exception.ai.AiRateLimitException;
 import nodingo.core.global.metrics.MonitoringMetrics;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.KeywordRelation;
 import nodingo.core.keyword.repository.KeywordRelationRepository;
@@ -46,7 +46,7 @@ public class NewsAiWriter implements ItemWriter<News> {
         List<News> chunkItems = new ArrayList<>(items.getItems());
         if (chunkItems.isEmpty()) return;
 
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
 
         List<News> savedNews = newsRepository.saveAll(chunkItems);
         Map<Long, News> newsMap = savedNews.stream()

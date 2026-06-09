@@ -6,7 +6,7 @@ import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
 import nodingo.core.global.metrics.MonitoringMetrics;
 import nodingo.core.global.exception.ai.AiRateLimitException;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
@@ -38,7 +38,7 @@ public class NeighborSummaryService {
 
     public Map<Long, String> generateSummarySync(List<Long> keywordIds) {
         log.info(">>>> [NeighborSync] Started. keywordIds size={}", keywordIds.size());
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getApiTargetDate();
         Map<Long, String> summaryMap = new HashMap<>();
 
         for (Long keywordId : keywordIds) {

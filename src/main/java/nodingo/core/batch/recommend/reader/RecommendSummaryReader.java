@@ -3,12 +3,11 @@ package nodingo.core.batch.recommend.reader;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,7 +24,7 @@ public class RecommendSummaryReader {
     @Bean
     @StepScope
     public JpaPagingItemReader<RecommendKeyword> recommendSummaryItemReader() {
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
         log.info(">>>> [Recommend Summary Reader] Initialized. targetDate={}", targetDate);
 
         return new JpaPagingItemReaderBuilder<RecommendKeyword>()

@@ -8,7 +8,7 @@ import nodingo.core.ai.dto.quiz.QuizGenerate;
 import nodingo.core.global.exception.ai.AiRateLimitException;
 import nodingo.core.global.exception.keyword.KeywordNotFoundException;
 import nodingo.core.global.metrics.MonitoringMetrics;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.repository.KeywordRepository;
@@ -64,7 +64,7 @@ public class QuizGenerationService {
                         .build())
                 .relatedNews(newsInputs)
                 .relatedKeywords(Collections.emptyList())
-                .targetDate(BatchDateUtil.getTargetDate())
+                .targetDate(DateUtil.getApiTargetDate())
                 .persona(keyword.getPersona() != null ? keyword.getPersona().name() : null)
                 .category(keyword.getParent() != null ? keyword.getParent().getWord() : null)
                 .build();

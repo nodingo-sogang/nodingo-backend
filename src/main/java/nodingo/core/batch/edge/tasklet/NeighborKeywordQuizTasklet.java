@@ -6,7 +6,7 @@ import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.keyword.KeywordSummary;
 import nodingo.core.global.exception.ai.AiRateLimitException;
 import nodingo.core.global.metrics.MonitoringMetrics;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.NewsKeyword;
 import nodingo.core.keyword.repository.KeywordRepository;
@@ -42,7 +42,7 @@ public class NeighborKeywordQuizTasklet implements Tasklet {
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
 
         List<Keyword> neighborKeywords = keywordRepository.findNeighborKeywordsWithNews(targetDate);
         log.info(">>>> [NeighborQuiz] Started. total neighbor keywords={}", neighborKeywords.size());

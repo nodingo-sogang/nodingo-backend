@@ -6,7 +6,7 @@ import nodingo.core.ai.client.AiClient;
 import nodingo.core.ai.dto.relation.NewsRelationAnalysis;
 import nodingo.core.global.exception.ai.AiRateLimitException;
 import nodingo.core.global.metrics.MonitoringMetrics;
-import nodingo.core.global.util.BatchDateUtil;
+import nodingo.core.global.util.DateUtil;
 import nodingo.core.news.domain.News;
 import nodingo.core.news.domain.NewsRelation;
 import nodingo.core.news.repository.NewsRelationRepository;
@@ -41,7 +41,7 @@ public class NewsRelationTasklet implements Tasklet {
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
         log.info(">>>> [Relation Tasklet] Starting news relation building process.");
 
-        LocalDate targetDate = BatchDateUtil.getTargetDate();
+        LocalDate targetDate = DateUtil.getTargetDate();
         LocalDateTime startTime = targetDate.atTime(5, 0, 0);
         LocalDateTime endTime = targetDate.plusDays(1).atTime(4, 59, 59);
 
