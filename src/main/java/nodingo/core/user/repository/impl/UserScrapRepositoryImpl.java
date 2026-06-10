@@ -18,13 +18,13 @@ public class UserScrapRepositoryImpl implements UserScrapRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public boolean isKeywordScrapped(Long userId, Long recommendKeywordId) {
+    public boolean isKeywordScrapped(Long userId, Long keywordId) {
         Integer fetchOne = queryFactory
                 .selectOne()
                 .from(userScrap)
                 .where(
                         userScrap.user.id.eq(userId),
-                        userScrap.recommendKeyword.id.eq(recommendKeywordId)
+                        userScrap.keyword.id.eq(keywordId)
                 )
                 .fetchFirst();
 
@@ -67,5 +67,17 @@ public class UserScrapRepositoryImpl implements UserScrapRepositoryCustom {
                 .where(userScrap.user.id.eq(userId))
                 .orderBy(userScrap.id.desc())
                 .fetch();
+    }
+
+    @Override
+    public Optional<UserScrap> findByUserIdAndKeywordId(Long userId, Long keywordId) {
+        return Optional.ofNullable(
+                queryFactory.selectFrom(userScrap)
+                        .where(
+                                userScrap.user.id.eq(userId),
+                                userScrap.keyword.id.eq(keywordId)
+                        )
+                        .fetchOne()
+        );
     }
 }

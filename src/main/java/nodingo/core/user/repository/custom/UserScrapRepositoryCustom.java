@@ -10,4 +10,5 @@ public interface UserScrapRepositoryCustom {
     Optional<UserScrap> findKeywordScrap(Long userId, Long recommendKeywordId);
     List<UserScrap> findKeywordScrapsByUserId(Long userId, int page, int size);
     List<UserScrap> findAllByUserId(Long userId);
+    Optional<UserScrap> findByUserIdAndKeywordId(Long userId, Long keywordId);
 }
