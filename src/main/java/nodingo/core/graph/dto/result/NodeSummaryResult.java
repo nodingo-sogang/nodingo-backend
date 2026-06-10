@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
 
 import nodingo.core.graph.dto.NewsItemBrief;
@@ -22,25 +23,34 @@ public class NodeSummaryResult {
     private List<NewsItemBrief> news;
     private boolean hasNext;
 
-    // 퀴즈/뉴스 함께 넘길 때 사용하는 생성 팩토리
     public static NodeSummaryResult from(RecommendKeyword rk, List<NewsItemBrief> news, boolean hasNext) {
         return NodeSummaryResult.builder()
                 .keywordId(rk.getKeyword().getId())
                 .word(rk.getKeyword().getWord())
-                .persona(rk.getKeyword().getPersona() != null ? rk.getKeyword().getPersona().name() : null)
+                .persona(rk.getKeyword().getPersona().name())
                 .summary(rk.getSummary())
                 .news(news)
                 .hasNext(hasNext)
                 .build();
     }
 
-    // 뉴스 없이 요약만 넘길 때 (디폴트 false 처리)
     public static NodeSummaryResult from(RecommendKeyword rk) {
         return NodeSummaryResult.builder()
                 .keywordId(rk.getKeyword().getId())
                 .word(rk.getKeyword().getWord())
-                .persona(rk.getKeyword().getPersona() != null ? rk.getKeyword().getPersona().name() : null)
+                .persona(rk.getKeyword().getPersona().name())
                 .summary(rk.getSummary())
+                .news(null)
+                .hasNext(false)
+                .build();
+    }
+
+    public static NodeSummaryResult from(Keyword keyword) {
+        return NodeSummaryResult.builder()
+                .keywordId(keyword.getId())
+                .word(keyword.getWord())
+                .persona(keyword.getPersona().name())
+                .summary("탐색 그래프에서 직접 스크랩한 키워드입니다. 상세 그래프 뷰에서 이 키워드와 얽힌 경제 뉴스 관계망을 확인해보세요!")
                 .news(null)
                 .hasNext(false)
                 .build();
