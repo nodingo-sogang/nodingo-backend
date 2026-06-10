@@ -18,5 +18,5 @@ public interface UserScrapRepository extends JpaRepository<UserScrap, Long>, Use
     @Query("delete from UserQuizResult u where u.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
 
-    Optional<UserScrap> findKeywordScrapByKeywordId(@Param("userId") Long userId, @Param("keywordId") Long keywordId);
+    Optional<UserScrap> findByUserIdAndKeywordId(Long userId, Long keywordId);
 }
