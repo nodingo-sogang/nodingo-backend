@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import nodingo.core.global.domain.BaseTimeEntity;
+import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.news.domain.News;
 
@@ -15,10 +16,11 @@ import nodingo.core.news.domain.News;
         name = "user_scraps",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = {"user_id", "news_id"}),
-                @UniqueConstraint(columnNames = {"user_id", "recommend_keyword_id"})
+                @UniqueConstraint(columnNames = {"user_id", "keyword_id"})
         }
 )
 public class UserScrap extends BaseTimeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,6 +32,10 @@ public class UserScrap extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "news_id")
     private News news;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "keyword_id")
+    private Keyword keyword;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recommend_keyword_id")
@@ -45,7 +51,15 @@ public class UserScrap extends BaseTimeEntity {
     public static UserScrap createRecommendKeywordScrap(User user, RecommendKeyword recommendKeyword) {
         UserScrap scrap = new UserScrap();
         scrap.user = user;
+        scrap.keyword = recommendKeyword.getKeyword();
         scrap.recommendKeyword = recommendKeyword;
+        return scrap;
+    }
+
+    public static UserScrap createPureKeywordScrap(User user, Keyword keyword) {
+        UserScrap scrap = new UserScrap();
+        scrap.user = user;
+        scrap.keyword = keyword;
         return scrap;
     }
 }

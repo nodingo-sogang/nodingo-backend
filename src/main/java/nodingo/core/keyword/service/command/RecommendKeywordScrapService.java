@@ -2,6 +2,9 @@ package nodingo.core.keyword.service.command;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import nodingo.core.global.exception.keyword.KeywordNotFoundException;
+import nodingo.core.keyword.domain.Keyword;
+import nodingo.core.keyword.repository.KeywordRepository;
 import nodingo.core.user.service.command.UserRankingService;
 import nodingo.core.user.utils.GamePolicy;
 import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
@@ -18,6 +21,8 @@ import nodingo.core.user.service.vector.UserVectorService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -27,39 +32,50 @@ public class RecommendKeywordScrapService {
     private final UserScrapRepository userScrapRepository;
     private final UserRepository userRepository;
     private final RecommendKeywordRepository recommendKeywordRepository;
+    private final KeywordRepository keywordRepository;
     private final UserVectorService userVectorService;
     private final GamePolicy gamePolicy;
     private final UserRankingService userRankingService;
 
     public void addScrap(Long userId, Long keywordId) {
         log.info(">>>> [Scrap] addScrap. userId={}, keywordId={}", userId, keywordId);
-        RecommendKeyword rk = getRk(userId, keywordId, "해당 키워드 추천 정보를 찾을 수 없습니다.");
 
-        isAlreadyScrapped(userId, rk);
+        Keyword keyword = keywordRepository.findById(keywordId)
+                .orElseThrow(() -> new KeywordNotFoundException("해당 키워드를 찾을 수 없습니다."));
+
+        if (userScrapRepository.isKeywordScrapped(userId, keywordId)) {
+            throw new DuplicateScrapException("이미 스크랩한 키워드입니다.");
+        }
 
         User user = getUser(userId);
 
-        userScrapRepository.save(UserScrap.createRecommendKeywordScrap(user, rk));
+        Optional<RecommendKeyword> recommendKeywordOpt = recommendKeywordRepository.findRecommend(userId, keywordId);
+
+        UserScrap userScrap;
+        if (recommendKeywordOpt.isPresent()) {
+            userScrap = UserScrap.createRecommendKeywordScrap(user, recommendKeywordOpt.get());
+        } else {
+            userScrap = UserScrap.createPureKeywordScrap(user, keyword);
+        }
+
+        userScrapRepository.save(userScrap);
 
         user.addKeywordScrap();
-
         int scrapXp = gamePolicy.getScrapXp();
         user.addXp(scrapXp);
-
         userRankingService.updateWeeklyXp(user.getId(), scrapXp);
-        log.info(">>>> [Scrap] Scrap added. userId={}, keywordId={}, xp={}", userId, keywordId, scrapXp);
 
+        log.info(">>>> [Scrap] Scrap added. userId={}, keywordId={}, xp={}", userId, keywordId, scrapXp);
         userVectorService.updateKeywordEmbeddingAsync(userId, keywordId);
     }
 
     public void removeScrap(Long userId, Long keywordId) {
         log.info(">>>> [Scrap] removeScrap. userId={}, keywordId={}", userId, keywordId);
-        RecommendKeyword rk = getRk(userId, keywordId, "추천 정보를 찾을 수 없습니다.");
 
-        UserScrap scrap = getScrap(userId, rk);
+        UserScrap scrap = userScrapRepository.findKeywordScrapByKeywordId(userId, keywordId)
+                .orElseThrow(() -> new ScrapNotFoundException("스크랩 기록을 찾을 수 없습니다."));
 
         User user = getUser(userId);
-
         user.removeKeywordScrap();
 
         int scrapXp = gamePolicy.getScrapXp();
