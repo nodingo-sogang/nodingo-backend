@@ -33,7 +33,7 @@ public class RecommendKeywordScrapQueryService {
 
     public Slice<ScrapKeywordNodeResult> getScrapKeywordNodes(Long userId, int page) {
         Pageable pageable = PageRequest.of(page, 20);
-        List<UserScrap> scraps = userScrapRepository.findKeywordScrapsByUserId(userId, page, 20);
+        List<UserScrap> scraps = userScrapRepository.findKeywordScrapsByUserId(userId, pageable);
         log.info(">>>> [Scrap Query] getScrapKeywordNodes. userId={}, page={}, count={}", userId, page, scraps.size());
         List<ScrapKeywordNodeResult> content = scraps.stream()
                 .map(ScrapKeywordNodeResult::from)
@@ -43,7 +43,7 @@ public class RecommendKeywordScrapQueryService {
 
     public Slice<NodeSummaryResult> getScrapKeywordSummaries(Long userId, int page) {
         Pageable pageable = PageRequest.of(page, 4);
-        List<UserScrap> scraps = userScrapRepository.findKeywordScrapsByUserId(userId, page, 4);
+        List<UserScrap> scraps = userScrapRepository.findKeywordScrapsByUserId(userId, pageable);
         log.info(">>>> [Scrap Query] getScrapKeywordSummaries. userId={}, page={}, count={}", userId, page, scraps.size());
         List<NodeSummaryResult> content = scraps.stream()
                 .map(scrap -> {
