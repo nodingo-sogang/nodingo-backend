@@ -63,12 +63,8 @@ public class UserScrapRepositoryImpl implements UserScrapRepositoryCustom {
     public List<UserScrap> findAllByUserId(Long userId) {
         return queryFactory
                 .selectFrom(userScrap)
-                .join(userScrap.recommendKeyword, recommendKeyword).fetchJoin()
-                .join(recommendKeyword.keyword, keyword).fetchJoin()
-                .where(
-                        userScrap.user.id.eq(userId),
-                        userScrap.recommendKeyword.isNotNull()
-                )
+                .join(userScrap.keyword, keyword).fetchJoin()
+                .where(userScrap.user.id.eq(userId))
                 .orderBy(userScrap.id.desc())
                 .fetch();
     }
