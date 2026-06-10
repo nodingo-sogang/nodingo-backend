@@ -16,6 +16,7 @@ public class RankingEntryResult {
     private int weekXp;
     private String persona;
     private boolean isMe;
+    private String profileImageUrl;
 
     public static RankingEntryResult from(User user, int rank, Long myUserId) {
         String displayPersona = user.getPersonas().isEmpty() ? "NONE" : user.getPersonas().get(0).name();
@@ -27,6 +28,7 @@ public class RankingEntryResult {
                 .weekXp(user.getWeeklyXp())
                 .persona(displayPersona)
                 .isMe(user.getId().equals(myUserId))
+                .profileImageUrl(user.getProfileImageUrl())
                 .build();
     }
 
@@ -40,6 +42,7 @@ public class RankingEntryResult {
                 .weekXp(user.getWeeklyXp())
                 .persona(displayPersona)
                 .isMe(true)
+                .profileImageUrl(user.getProfileImageUrl())  // 추가
                 .build();
     }
 }

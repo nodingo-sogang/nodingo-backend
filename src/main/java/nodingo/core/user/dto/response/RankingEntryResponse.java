@@ -17,6 +17,7 @@ public class RankingEntryResponse {
     private int weekXp;
     private String persona;
     private boolean isMe;
+    private String profileImageUrl;
 
     public static RankingEntryResponse from(RankingEntryResult result) {
         return RankingEntryResponse.builder()
@@ -26,6 +27,7 @@ public class RankingEntryResponse {
                 .weekXp(result.getWeekXp())
                 .persona(result.getPersona())
                 .isMe(result.isMe())
+                .profileImageUrl(result.getProfileImageUrl())
                 .build();
     }
 }
