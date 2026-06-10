@@ -4,7 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import nodingo.core.global.util.SliceUtil;
 import nodingo.core.graph.dto.result.NodeSummaryResult;
+import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.domain.KeywordRelation;
+import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.dto.response.ScrapGraphResult;
 import nodingo.core.keyword.dto.result.ScrapKeywordNodeResult;
 import nodingo.core.keyword.repository.KeywordRelationRepository;
@@ -64,18 +66,21 @@ public class RecommendKeywordScrapQueryService {
         }
 
         List<Long> scrapKeywordIds = scraps.stream()
-                .map(s -> s.getRecommendKeyword().getKeyword().getId())
+                .map(s -> s.getKeyword().getId())
                 .toList();
 
         List<ScrapGraphResult.NodeResult> nodes = scraps.stream()
                 .map(s -> {
-                    var rk = s.getRecommendKeyword();
-                    var k = rk.getKeyword();
+                    RecommendKeyword rk = s.getRecommendKeyword();
+                    Keyword k = s.getKeyword();
+
+                    double score = (rk != null) ? rk.getScore() : 0.0;
+
                     return new ScrapGraphResult.NodeResult(
                             k.getId(),
                             k.getWord(),
                             k.getPersona().name(),
-                            rk.getScore()
+                            score
                     );
                 }).toList();
 
