@@ -16,7 +16,7 @@ public class UserRankingScheduler {
     private final UserRankingService userRankingService;
     private final MonitoringMetrics metrics;
 
-    @Scheduled(cron = "0 0 0 * * SUN")
+    @Scheduled(cron = "0 0 0 * * MON")
     public void runWeeklyRankingReset() {
         log.info(">>>> [Scheduler] Weekly ranking reset start.");
         Timer.Sample sample = metrics.startTimer();
