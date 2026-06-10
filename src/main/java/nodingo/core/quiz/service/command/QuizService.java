@@ -70,6 +70,13 @@ public class QuizService {
             }
         }
 
+        if (user.getTotalQuizzesCompleted() >= 10
+                && !userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.QUIZ_10)) {
+            userBadgeRepository.save(UserBadge.create(user, BadgeType.QUIZ_10));
+            newBadges.add("QUIZ_10");
+            log.info(">>>> [Quiz] Badge earned. userId={}, badge=QUIZ_10", user.getId());
+        }
+
         return xp;
     }
 

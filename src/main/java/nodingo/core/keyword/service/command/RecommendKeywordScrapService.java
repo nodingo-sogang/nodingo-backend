@@ -5,6 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import nodingo.core.global.exception.keyword.KeywordNotFoundException;
 import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.repository.KeywordRepository;
+import nodingo.core.user.domain.BadgeType;
+import nodingo.core.user.domain.UserBadge;
+import nodingo.core.user.repository.UserBadgeRepository;
 import nodingo.core.user.service.command.UserRankingService;
 import nodingo.core.user.utils.GamePolicy;
 import nodingo.core.global.exception.scrap.DuplicateScrapException;
@@ -35,6 +38,7 @@ public class RecommendKeywordScrapService {
     private final UserVectorService userVectorService;
     private final GamePolicy gamePolicy;
     private final UserRankingService userRankingService;
+    private final UserBadgeRepository userBadgeRepository;
 
     public void addScrap(Long userId, Long keywordId) {
         log.info(">>>> [Scrap] addScrap. userId={}, keywordId={}", userId, keywordId);
@@ -53,6 +57,10 @@ public class RecommendKeywordScrapService {
         UserScrap userScrap = recommendKeywordOpt.map(recommendKeyword -> UserScrap.createRecommendKeywordScrap(user, recommendKeyword)).orElseGet(() -> UserScrap.createPureKeywordScrap(user, keyword));
 
         userScrapRepository.save(userScrap);
+
+        if (!userBadgeRepository.existsByUserIdAndBadgeType(userId, BadgeType.FIRST_SCRAP)) {
+            userBadgeRepository.save(UserBadge.create(user, BadgeType.FIRST_SCRAP));
+        }
 
         user.addKeywordScrap();
         int scrapXp = gamePolicy.getScrapXp();
