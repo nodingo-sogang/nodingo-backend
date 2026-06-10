@@ -9,7 +9,9 @@ import nodingo.core.global.auth.CustomOAuth2User;
 import nodingo.core.global.dto.response.ApiResponse;
 import nodingo.core.graph.dto.response.NodeSummaryResponse;
 import nodingo.core.graph.dto.result.NodeSummaryResult;
+import nodingo.core.keyword.dto.response.ScrapGraphResult;
 import nodingo.core.keyword.dto.response.ScrapKeywordNodeResponse;
+import nodingo.core.keyword.dto.result.ScrapGraphResponse;
 import nodingo.core.keyword.dto.result.ScrapKeywordNodeResult;
 import nodingo.core.keyword.service.command.RecommendKeywordScrapService;
 import nodingo.core.keyword.service.query.RecommendKeywordScrapQueryService;
@@ -24,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
-public class RecommendKeywordScrapController {
+public class RecommendKeywordController {
 
     private final RecommendKeywordScrapService keywordScrapService;
     private final RecommendKeywordScrapQueryService keywordScrapQueryService;
@@ -88,5 +90,17 @@ public class RecommendKeywordScrapController {
                 .getScrapKeywordSummaries(customUser.getUser().getId(), page);
         Slice<NodeSummaryResponse> response = result.map(NodeSummaryResponse::from);
         return ResponseEntity.ok(new ApiResponse<>(true, 200, "스크랩한 키워드 요약 목록을 조회했습니다.", response));
+    }
+
+    @Operation(summary = "스크랩한 키워드 관계 그래프 조회 (노드+엣지 통합)",
+            description = "내가 스크랩한 키워드들과 그 키워드들끼리만 연결된 관계선(엣지) 리스트를 페이징 없이 한 번에 반환합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "스크랩 관계 그래프 조회 성공")
+    })
+    @GetMapping("/users/scraps/keywords/graph")
+    public ResponseEntity<ApiResponse<ScrapGraphResponse>> getScrapKeywordGraph(
+            @AuthenticationPrincipal CustomOAuth2User customUser) {
+        ScrapGraphResult result = keywordScrapQueryService.getScrapKeywordGraph(customUser.getUser().getId());
+        return ResponseEntity.ok(new ApiResponse<>(true, 200, "스크랩 키워드 관계 그래프를 조회했습니다.", ScrapGraphResponse.from(result)));
     }
 }
