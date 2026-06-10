@@ -18,7 +18,8 @@ public class ScrapKeywordNodeResult {
     private UserPersona persona;
 
     public static ScrapKeywordNodeResult from(UserScrap scrap) {
-        Keyword keyword = scrap.getRecommendKeyword().getKeyword();
+        Keyword keyword = scrap.getKeyword();
+
         return ScrapKeywordNodeResult.builder()
                 .id(keyword.getId())
                 .word(keyword.getWord())

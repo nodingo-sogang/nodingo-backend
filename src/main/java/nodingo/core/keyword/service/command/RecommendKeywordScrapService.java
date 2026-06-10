@@ -7,7 +7,6 @@ import nodingo.core.keyword.domain.Keyword;
 import nodingo.core.keyword.repository.KeywordRepository;
 import nodingo.core.user.service.command.UserRankingService;
 import nodingo.core.user.utils.GamePolicy;
-import nodingo.core.global.exception.recommendKeyword.RecommendKeywordNotFoundException;
 import nodingo.core.global.exception.scrap.DuplicateScrapException;
 import nodingo.core.global.exception.scrap.ScrapNotFoundException;
 import nodingo.core.global.exception.user.UserNotFoundException;
@@ -51,12 +50,7 @@ public class RecommendKeywordScrapService {
 
         Optional<RecommendKeyword> recommendKeywordOpt = recommendKeywordRepository.findRecommend(userId, keywordId);
 
-        UserScrap userScrap;
-        if (recommendKeywordOpt.isPresent()) {
-            userScrap = UserScrap.createRecommendKeywordScrap(user, recommendKeywordOpt.get());
-        } else {
-            userScrap = UserScrap.createPureKeywordScrap(user, keyword);
-        }
+        UserScrap userScrap = recommendKeywordOpt.map(recommendKeyword -> UserScrap.createRecommendKeywordScrap(user, recommendKeyword)).orElseGet(() -> UserScrap.createPureKeywordScrap(user, keyword));
 
         userScrapRepository.save(userScrap);
 
@@ -90,21 +84,5 @@ public class RecommendKeywordScrapService {
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
-    }
-
-    private void isAlreadyScrapped(Long userId, RecommendKeyword rk) {
-        if (userScrapRepository.isKeywordScrapped(userId, rk.getId())) {
-            throw new DuplicateScrapException("이미 스크랩한 키워드입니다.");
-        }
-    }
-
-    private RecommendKeyword getRk(Long userId, Long keywordId, String message) {
-        return recommendKeywordRepository.findRecommend(userId, keywordId)
-                .orElseThrow(() -> new RecommendKeywordNotFoundException(message));
-    }
-
-    private UserScrap getScrap(Long userId, RecommendKeyword rk) {
-        return userScrapRepository.findKeywordScrap(userId, rk.getId())
-                .orElseThrow(() -> new ScrapNotFoundException("스크랩 기록을 찾을 수 없습니다."));
     }
 }

@@ -47,11 +47,11 @@ public class UserScrapRepositoryImpl implements UserScrapRepositoryCustom {
     public List<UserScrap> findKeywordScrapsByUserId(Long userId, int page, int size) {
         return queryFactory
                 .selectFrom(userScrap)
-                .join(userScrap.recommendKeyword, recommendKeyword).fetchJoin()
-                .join(recommendKeyword.keyword, keyword).fetchJoin()
+                .join(userScrap.keyword, keyword).fetchJoin()
+                .leftJoin(userScrap.recommendKeyword, recommendKeyword).fetchJoin()
                 .where(
                         userScrap.user.id.eq(userId),
-                        userScrap.recommendKeyword.isNotNull()
+                        userScrap.keyword.isNotNull()
                 )
                 .orderBy(userScrap.id.desc())
                 .offset((long) page * size)

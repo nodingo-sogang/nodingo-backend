@@ -44,7 +44,12 @@ public class RecommendKeywordScrapQueryService {
         List<UserScrap> scraps = userScrapRepository.findKeywordScrapsByUserId(userId, page, 4);
         log.info(">>>> [Scrap Query] getScrapKeywordSummaries. userId={}, page={}, count={}", userId, page, scraps.size());
         List<NodeSummaryResult> content = scraps.stream()
-                .map(scrap -> NodeSummaryResult.from(scrap.getRecommendKeyword()))
+                .map(scrap -> {
+                    if (scrap.getRecommendKeyword() != null) {
+                        return NodeSummaryResult.from(scrap.getRecommendKeyword());
+                    }
+                    return NodeSummaryResult.from(scrap.getKeyword());
+                })
                 .collect(Collectors.toList());
         return SliceUtil.checkLastPage(pageable, content);
     }
