@@ -4,6 +4,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import nodingo.core.user.domain.UserScrap;
 import nodingo.core.user.repository.custom.UserScrapRepositoryCustom;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 import java.util.List;
@@ -44,7 +45,7 @@ public class UserScrapRepositoryImpl implements UserScrapRepositoryCustom {
     }
 
     @Override
-    public List<UserScrap> findKeywordScrapsByUserId(Long userId, int page, int size) {
+    public List<UserScrap> findKeywordScrapsByUserId(Long userId, Pageable pageable) {
         return queryFactory
                 .selectFrom(userScrap)
                 .join(userScrap.keyword, keyword).fetchJoin()
@@ -54,8 +55,8 @@ public class UserScrapRepositoryImpl implements UserScrapRepositoryCustom {
                         userScrap.keyword.isNotNull()
                 )
                 .orderBy(userScrap.id.desc())
-                .offset((long) page * size)
-                .limit(size + 1L)
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize() + 1L)
                 .fetch();
     }
 
