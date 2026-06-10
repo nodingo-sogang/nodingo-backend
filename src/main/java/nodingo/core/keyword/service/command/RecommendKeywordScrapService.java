@@ -72,7 +72,7 @@ public class RecommendKeywordScrapService {
     public void removeScrap(Long userId, Long keywordId) {
         log.info(">>>> [Scrap] removeScrap. userId={}, keywordId={}", userId, keywordId);
 
-        UserScrap scrap = userScrapRepository.findKeywordScrapByKeywordId(userId, keywordId)
+        UserScrap scrap = userScrapRepository.findByUserIdAndKeywordId(userId, keywordId)
                 .orElseThrow(() -> new ScrapNotFoundException("스크랩 기록을 찾을 수 없습니다."));
 
         User user = getUser(userId);
