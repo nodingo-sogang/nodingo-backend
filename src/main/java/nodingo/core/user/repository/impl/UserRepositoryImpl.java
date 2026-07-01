@@ -26,4 +26,19 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .offset(offset)
                 .fetch();
     }
+
+    @Override
+    public long countHigherRankedByPersona(UserPersona persona, int weeklyXp, Long userId) {
+        QUser user = QUser.user;
+        Long count = queryFactory
+                .select(user.count())
+                .from(user)
+                .where(
+                        user.personas.contains(persona),
+                        user.weeklyXp.gt(weeklyXp)
+                                .or(user.weeklyXp.eq(weeklyXp).and(user.id.lt(userId)))
+                )
+                .fetchOne();
+        return count != null ? count : 0L;
+    }
 }

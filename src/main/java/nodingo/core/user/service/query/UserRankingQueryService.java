@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import nodingo.core.friendship.repository.FriendshipRepository;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.user.domain.User;
+import nodingo.core.user.domain.UserPersona;
 import nodingo.core.user.dto.request.RankingRequest;
 import nodingo.core.user.dto.result.CachedUserInfo;
 import nodingo.core.user.dto.result.RankingEntryResult;
@@ -124,6 +125,13 @@ public class UserRankingQueryService {
     }
 
     private RankingEntryResult fetchMyStickyEntryFromDbFallback(User loginUser) {
-        return RankingEntryResult.ofFallback(loginUser);
+        UserPersona persona = loginUser.getPersonas().isEmpty() ? null : loginUser.getPersonas().get(0);
+        if (persona == null) {
+            return RankingEntryResult.ofFallback(loginUser);
+        }
+        long higherRankedCount = userRepository.countHigherRankedByPersona(
+                persona, loginUser.getWeeklyXp(), loginUser.getId());
+        int actualRank = (int) (higherRankedCount + 1);
+        return RankingEntryResult.from(CachedUserInfo.from(loginUser), actualRank, loginUser.getId());
     }
 }
