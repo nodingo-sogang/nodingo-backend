@@ -6,9 +6,11 @@ import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.user.domain.BadgeType;
 import nodingo.core.user.domain.User;
 import nodingo.core.user.domain.UserBadge;
+import nodingo.core.user.event.UserXpChangedEvent;
 import nodingo.core.user.repository.UserBadgeRepository;
 import nodingo.core.user.repository.UserRepository;
 import nodingo.core.user.utils.GamePolicy;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +26,7 @@ public class UserGameService {
     private final UserRepository userRepository;
     private final GamePolicy gamePolicy;
     private final UserBadgeRepository userBadgeRepository;
-    private final UserRankingService userRankingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void checkAndRewardAttendance(Long userId) {
         log.info(">>>> [Game] checkAndRewardAttendance. userId={}", userId);
@@ -37,9 +39,10 @@ public class UserGameService {
     private void ifFirstVisit(User user, LocalDate standardToday) {
         if (user.recordAttendance(standardToday)) {
             int firstVisitXp = gamePolicy.getFirstVisitXp();
+
             user.addXp(firstVisitXp);
 
-            userRankingService.updateWeeklyXp(user.getId(), firstVisitXp);
+            eventPublisher.publishEvent(new UserXpChangedEvent(user));
 
             if (!userBadgeRepository.existsByUserIdAndBadgeType(user.getId(), BadgeType.FIRST_VISIT)) {
                 userBadgeRepository.save(UserBadge.create(user, BadgeType.FIRST_VISIT));
