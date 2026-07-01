@@ -1,12 +1,15 @@
 
 package nodingo.core.user.service.query;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nodingo.core.friendship.repository.FriendshipRepository;
 import nodingo.core.global.exception.user.UserNotFoundException;
 import nodingo.core.user.domain.User;
 import nodingo.core.user.dto.request.RankingRequest;
+import nodingo.core.user.dto.result.CachedUserInfo;
 import nodingo.core.user.dto.result.RankingEntryResult;
 import nodingo.core.user.dto.result.RankingListResult;
 import nodingo.core.user.repository.UserRepository;
@@ -26,18 +29,19 @@ public class UserRankingQueryService {
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
     private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    private static final String USER_INFO_HASH_KEY = "user:ranking:info";
 
     public RankingListResult getRankingLeaderboard(Long loginUserId, RankingRequest request) {
-        log.info(">>>> [Ranking Query] getRankingLeaderboard. userId={}, scope={}", loginUserId, request.getScope());
         User loginUser = userRepository.findAllByIdWithPersonas(List.of(loginUserId)).stream()
                 .findFirst()
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
 
         return switch (request.getScope()) {
             case PERSONA -> {
-                String userOwnPersonaStr = loginUser.getPersonas().isEmpty() ? "NONE" : loginUser.getPersonas().get(0).name();
-                String redisKey = "ranking:weekly:" + userOwnPersonaStr;
-                yield getPersonaLeaderboard(loginUser, redisKey);
+                String p = loginUser.getPersonas().isEmpty() ? "NONE" : loginUser.getPersonas().get(0).name();
+                yield getPersonaLeaderboard(loginUser, "ranking:weekly:" + p);
             }
             case FRIENDS -> getFriendLeaderboard(loginUser);
         };
@@ -45,85 +49,78 @@ public class UserRankingQueryService {
 
     private RankingListResult getPersonaLeaderboard(User loginUser, String redisKey) {
         Long myUserId = loginUser.getId();
-        List<User> targetUsers;
+        List<CachedUserInfo> targetUsers = new ArrayList<>();
         boolean isRedisDataExist = false;
 
-        Set<ZSetOperations.TypedTuple<String>> rankedSet = redisTemplate.opsForZSet()
-                .reverseRangeWithScores(redisKey, 0, -1);
+        Set<ZSetOperations.TypedTuple<String>> rankedSet = redisTemplate.opsForZSet().reverseRangeWithScores(redisKey, 0, -1);
 
         if (rankedSet != null && !rankedSet.isEmpty()) {
             isRedisDataExist = true;
-            log.info(">>>> [Ranking Query] Persona leaderboard from Redis. userId={}, redisKey={}, count={}",
-                    myUserId, redisKey, rankedSet.size());
-            List<Long> userIds = rankedSet.stream()
-                    .map(tuple -> Long.parseLong(Objects.requireNonNull(tuple.getValue())))
-                    .toList();
+            List<String> userIdStrs = rankedSet.stream().map(t -> Objects.requireNonNull(t.getValue())).toList();
 
-            List<User> dbUsers = userRepository.findAllByIdWithPersonas(userIds);
-            Map<Long, User> userMap = new HashMap<>();
-            dbUsers.forEach(u -> userMap.put(u.getId(), u));
-            targetUsers = userIds.stream().map(userMap::get).filter(Objects::nonNull).toList();
+            List<Object> cachedJsons = redisTemplate.opsForHash().multiGet(USER_INFO_HASH_KEY, new ArrayList<>(userIdStrs));
+
+            List<Long> missingUserIds = new ArrayList<>();
+            Map<Long, CachedUserInfo> cachedUserMap = new HashMap<>();
+
+            for (int i = 0; i < userIdStrs.size(); i++) {
+                Long uid = Long.parseLong(userIdStrs.get(i));
+                if (cachedJsons.get(i) != null) {
+                    try { cachedUserMap.put(uid, objectMapper.readValue(cachedJsons.get(i).toString(), CachedUserInfo.class)); }
+                    catch (JsonProcessingException e) { missingUserIds.add(uid); }
+                } else { missingUserIds.add(uid); }
+            }
+
+            if (!missingUserIds.isEmpty()) {
+                List<User> dbUsers = userRepository.findAllByIdWithPersonas(missingUserIds);
+                Map<String, String> dataToCache = new HashMap<>();
+                for (User u : dbUsers) {
+                    CachedUserInfo info = CachedUserInfo.from(u);
+                    cachedUserMap.put(u.getId(), info);
+                    try { dataToCache.put(u.getId().toString(), objectMapper.writeValueAsString(info)); } catch (Exception ignored) {}
+                }
+                if (!dataToCache.isEmpty()) redisTemplate.opsForHash().putAll(USER_INFO_HASH_KEY, dataToCache);
+            }
+            for (String uid : userIdStrs) targetUsers.add(cachedUserMap.get(Long.parseLong(uid)));
         } else {
-            log.warn(">>>> [Ranking Query] Redis empty, fallback to DB. userId={}, redisKey={}", myUserId, redisKey);
-            targetUsers = userRepository.fetchLeaderboardByPersona(loginUser.getPersonas().get(0), 100, 0);
+            targetUsers = userRepository.fetchLeaderboardByPersona(loginUser.getPersonas().get(0), 100, 0)
+                    .stream().map(CachedUserInfo::from).toList();
         }
 
         List<RankingEntryResult> allEntries = generateRankingEntries(targetUsers, myUserId);
-        List<RankingEntryResult> top10Entries = allEntries.stream().limit(10).toList();
 
         final boolean finalIsRedisDataExist = isRedisDataExist;
-        RankingEntryResult myEntry = allEntries.stream()
-                .filter(RankingEntryResult::isMe)
-                .findFirst()
-                .orElseGet(() -> finalIsRedisDataExist
-                        ? fetchMyStickyEntryFromRedis(loginUser, redisKey)
-                        : fetchMyStickyEntryFromDbFallback(loginUser));
 
-        return new RankingListResult("persona", "weekly", top10Entries, myEntry);
+        return new RankingListResult("persona", "weekly", allEntries.stream().limit(10).toList(),
+                allEntries.stream().filter(RankingEntryResult::isMe).findFirst()
+                        .orElseGet(() -> finalIsRedisDataExist ? fetchMyStickyEntryFromRedis(loginUser, redisKey) : fetchMyStickyEntryFromDbFallback(loginUser)));
     }
 
     private RankingListResult getFriendLeaderboard(User loginUser) {
-        Long myUserId = loginUser.getId();
-        List<Long> friendIds = new ArrayList<>(friendshipRepository.fetchFriendUserIds(myUserId));
-        friendIds.add(myUserId);
-        log.info(">>>> [Ranking Query] Friend leaderboard. userId={}, friendCount={}", myUserId, friendIds.size() - 1);
-
-        List<User> targetUsers = userRepository.findAllByIdWithPersonas(friendIds).stream()
+        List<Long> friendIds = new ArrayList<>(friendshipRepository.fetchFriendUserIds(loginUser.getId()));
+        friendIds.add(loginUser.getId());
+        List<CachedUserInfo> targetUsers = userRepository.findAllByIdWithPersonas(friendIds).stream()
+                .map(CachedUserInfo::from)
                 .sorted((u1, u2) -> Integer.compare(u2.getWeeklyXp(), u1.getWeeklyXp()))
                 .toList();
-
-        List<RankingEntryResult> allEntries = generateRankingEntries(targetUsers, myUserId);
-        List<RankingEntryResult> top10Entries = allEntries.stream().limit(10).toList();
-
-        RankingEntryResult myEntry = allEntries.stream()
-                .filter(RankingEntryResult::isMe)
-                .findFirst()
-                .orElseThrow(() -> new UserNotFoundException("내 사용자 정보를 찾을 수 없습니다."));
-
-        return new RankingListResult("friends", "weekly", top10Entries, myEntry);
+        List<RankingEntryResult> allEntries = generateRankingEntries(targetUsers, loginUser.getId());
+        return new RankingListResult("friends", "weekly", allEntries.stream().limit(10).toList(),
+                allEntries.stream().filter(RankingEntryResult::isMe).findFirst().orElseThrow());
     }
 
-    private List<RankingEntryResult> generateRankingEntries(List<User> users, Long myUserId) {
+    private List<RankingEntryResult> generateRankingEntries(List<CachedUserInfo> users, Long myUserId) {
         List<RankingEntryResult> entries = new ArrayList<>();
-        int currentRank = 1;
-
+        int cur = 1;
         for (int i = 0; i < users.size(); i++) {
-            User u = users.get(i);
-
-            if (i > 0 && u.getWeeklyXp() < users.get(i - 1).getWeeklyXp()) {
-                currentRank = i + 1;
-            }
-
-            entries.add(RankingEntryResult.from(u, currentRank, myUserId));
+            if (i > 0 && users.get(i).getWeeklyXp() < users.get(i - 1).getWeeklyXp()) cur = i + 1;
+            entries.add(RankingEntryResult.from(users.get(i), cur, myUserId));
         }
         return entries;
     }
 
     private RankingEntryResult fetchMyStickyEntryFromRedis(User loginUser, String redisKey) {
-        Long redisRank = redisTemplate.opsForZSet().reverseRank(redisKey, loginUser.getId().toString());
-        int realRank = (redisRank != null) ? (int) (redisRank + 1) : 999;
-
-        return RankingEntryResult.from(loginUser, realRank, loginUser.getId());
+        Long rank = redisTemplate.opsForZSet().reverseRank(redisKey, loginUser.getId().toString());
+        return RankingEntryResult.from(CachedUserInfo.from(loginUser), (rank != null ? (int)(rank + 1) : 999), loginUser.getId());
     }
 
     private RankingEntryResult fetchMyStickyEntryFromDbFallback(User loginUser) {
