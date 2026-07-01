@@ -129,8 +129,7 @@ public class UserRankingQueryService {
         if (persona == null) {
             return RankingEntryResult.ofFallback(loginUser);
         }
-        long higherRankedCount = userRepository.countHigherRankedByPersona(
-                persona, loginUser.getWeeklyXp(), loginUser.getId());
+        long higherRankedCount = userRepository.countHigherRankedByPersona(persona, loginUser.getWeeklyXp());
         int actualRank = (int) (higherRankedCount + 1);
         return RankingEntryResult.from(CachedUserInfo.from(loginUser), actualRank, loginUser.getId());
     }

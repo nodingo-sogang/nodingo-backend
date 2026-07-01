@@ -28,7 +28,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     }
 
     @Override
-    public long countHigherRankedByPersona(UserPersona persona, int weeklyXp, Long userId) {
+    public long countHigherRankedByPersona(UserPersona persona, int weeklyXp) {
         QUser user = QUser.user;
         Long count = queryFactory
                 .select(user.count())
@@ -36,7 +36,6 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .where(
                         user.personas.contains(persona),
                         user.weeklyXp.gt(weeklyXp)
-                                .or(user.weeklyXp.eq(weeklyXp).and(user.id.lt(userId)))
                 )
                 .fetchOne();
         return count != null ? count : 0L;
