@@ -42,7 +42,20 @@ public class RankingEntryResult {
                 .weekXp(user.getWeeklyXp())
                 .persona(displayPersona)
                 .isMe(true)
-                .profileImageUrl(user.getProfileImageUrl())  // 추가
+                .profileImageUrl(user.getProfileImageUrl())
+                .build();
+    }
+
+    public static RankingEntryResult from(CachedUserInfo cachedUser, int rank, Long myUserId) {
+        return RankingEntryResult.builder()
+                .rank(rank)
+                .userId(cachedUser.getUserId())
+                .nickname(cachedUser.getNickname())
+                .level(cachedUser.getLevel())
+                .weekXp(cachedUser.getWeeklyXp())
+                .persona(cachedUser.getPersona())
+                .isMe(cachedUser.getUserId().equals(myUserId))
+                .profileImageUrl(cachedUser.getProfileImageUrl())
                 .build();
     }
 }
