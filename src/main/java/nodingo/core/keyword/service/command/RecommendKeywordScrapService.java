@@ -8,8 +8,6 @@ import nodingo.core.keyword.repository.KeywordRepository;
 import nodingo.core.user.domain.BadgeType;
 import nodingo.core.user.domain.UserBadge;
 import nodingo.core.user.repository.UserBadgeRepository;
-import nodingo.core.user.service.command.UserRankingService;
-import nodingo.core.user.utils.GamePolicy;
 import nodingo.core.global.exception.scrap.DuplicateScrapException;
 import nodingo.core.global.exception.scrap.ScrapNotFoundException;
 import nodingo.core.global.exception.user.UserNotFoundException;
@@ -17,9 +15,12 @@ import nodingo.core.keyword.domain.RecommendKeyword;
 import nodingo.core.keyword.repository.RecommendKeywordRepository;
 import nodingo.core.user.domain.User;
 import nodingo.core.user.domain.UserScrap;
+import nodingo.core.user.event.UserXpChangedEvent; // 이벤트 객체 import
 import nodingo.core.user.repository.UserRepository;
 import nodingo.core.user.repository.UserScrapRepository;
 import nodingo.core.user.service.vector.UserVectorService;
+import nodingo.core.user.utils.GamePolicy;
+import org.springframework.context.ApplicationEventPublisher; // 퍼블리셔 import
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,8 +38,8 @@ public class RecommendKeywordScrapService {
     private final KeywordRepository keywordRepository;
     private final UserVectorService userVectorService;
     private final GamePolicy gamePolicy;
-    private final UserRankingService userRankingService;
     private final UserBadgeRepository userBadgeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void addScrap(Long userId, Long keywordId) {
         log.info(">>>> [Scrap] addScrap. userId={}, keywordId={}", userId, keywordId);
@@ -64,8 +65,10 @@ public class RecommendKeywordScrapService {
 
         user.addKeywordScrap();
         int scrapXp = gamePolicy.getScrapXp();
+
         user.addXp(scrapXp);
-        userRankingService.updateWeeklyXp(user.getId(), scrapXp);
+
+        eventPublisher.publishEvent(new UserXpChangedEvent(user));
 
         log.info(">>>> [Scrap] Scrap added. userId={}, keywordId={}, xp={}", userId, keywordId, scrapXp);
         userVectorService.updateKeywordEmbeddingAsync(userId, keywordId);
@@ -81,9 +84,11 @@ public class RecommendKeywordScrapService {
         user.removeKeywordScrap();
 
         int scrapXp = gamePolicy.getScrapXp();
+
         user.removeXp(scrapXp);
 
-        userRankingService.updateWeeklyXp(user.getId(), -scrapXp);
+        eventPublisher.publishEvent(new UserXpChangedEvent(user));
+
         log.info(">>>> [Scrap] Scrap removed. userId={}, keywordId={}, xp={}", userId, keywordId, scrapXp);
 
         userScrapRepository.delete(scrap);
